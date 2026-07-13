@@ -1,0 +1,106 @@
+╔═══════════════════════════════════════════════════════════════════════════════════╗
+║                                                                                   ║
+║  ✅ NODE.JS INSTALLED SUCCESSFULLY                                                ║
+║  Version: v20.19.4                                                                ║
+║  npm: 10.8.2                                                                      ║
+║                                                                                   ║
+║  ❌ BUT: Kiro terminal needs refreshing to pick up Node.js PATH                   ║
+║                                                                                   ║
+╚═══════════════════════════════════════════════════════════════════════════════════╝
+
+⚠️  IMPORTANT: Please open a NEW PowerShell terminal (or restart Kiro) so Node.js is recognized!
+
+Then run these commands IN ORDER:
+
+═════════════════════════════════════════════════════════════════════════════════════
+STEP 1: Verify Node.js works in new terminal
+═════════════════════════════════════════════════════════════════════════════════════
+
+node --version
+npm --version
+
+  (Should show: v20.19.4 and 10.8.2)
+
+═════════════════════════════════════════════════════════════════════════════════════
+STEP 2: Set up MongoDB URI in backend\.env file
+═════════════════════════════════════════════════════════════════════════════════════
+
+Edit this file:
+  c:\Users\admin\OneDrive\Desktop\New folder (2)\backend\.env
+
+Find this line:
+  MONGODB_URI=mongodb+srv://ecomuser:ecom123456@cluster0.xxxxx.mongodb.net/...
+
+Replace with your actual MongoDB Atlas connection string from mongodb.com/atlas
+
+═════════════════════════════════════════════════════════════════════════════════════
+STEP 3: Run the automated PowerShell script
+═════════════════════════════════════════════════════════════════════════════════════
+
+Right-click "run-install.ps1" and select "Run with PowerShell"
+
+Or from PowerShell terminal:
+cd "c:\Users\admin\OneDrive\Desktop\New folder (2)"
+.\run-install.ps1
+
+This will install ALL dependencies (root + backend + frontend)
+
+═════════════════════════════════════════════════════════════════════════════════════
+STEP 4: Seed the Database
+═════════════════════════════════════════════════════════════════════════════════════
+
+Right-click "run-seed.ps1" and select "Run with PowerShell"
+
+Or from PowerShell:
+.\run-seed.ps1
+
+Expected output:
+  ✅ Created admin user
+  ✅ Created test user
+  ✅ Created categories
+  ✅ Created sample products
+
+═════════════════════════════════════════════════════════════════════════════════════
+STEP 5: Start Backend Server
+═════════════════════════════════════════════════════════════════════════════════════
+
+Open a PowerShell terminal and run:
+.\run-backend.ps1
+
+Leave this terminal running!
+
+═════════════════════════════════════════════════════════════════════════════════════
+STEP 6: Start Frontend Server (in a SECOND terminal)
+═════════════════════════════════════════════════════════════════════════════════════
+
+Open ANOTHER PowerShell terminal and run:
+.\run-frontend.ps1
+
+Leave this terminal running too!
+
+═════════════════════════════════════════════════════════════════════════════════════
+STEP 7: Open in Browser
+═════════════════════════════════════════════════════════════════════════════════════
+
+Customer Store:
+  → http://localhost:3000
+
+Admin Dashboard:
+  → http://localhost:3000/admin
+  
+  Login:
+  Email:    admin@ecommerce.com
+  Password: Admin@123456
+
+═════════════════════════════════════════════════════════════════════════════════════
+HELPER SCRIPTS CREATED
+═════════════════════════════════════════════════════════════════════════════════════
+
+✓ run-install.ps1   - Installs all dependencies
+✓ run-seed.ps1      - Seeds database with sample data
+✓ run-backend.ps1   - Starts backend server (http://localhost:5000)
+✓ run-frontend.ps1  - Starts frontend server (http://localhost:3000)
+
+Just right-click any .ps1 file → "Run with PowerShell"
+
+═════════════════════════════════════════════════════════════════════════════════════
