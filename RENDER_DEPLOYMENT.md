@@ -1,198 +1,187 @@
-# 🚀 Deploy on Render — Both Frontend & Backend
+# Render Deployment Guide — Kirana Store
 
-## What You'll Get After Deployment
+Deploy both Backend API and Frontend on Render (free tier).
 
-| Service | URL (example) |
-|---------|---------------|
+---
+
+## What You Will Get
+
+| Service | URL |
+|---------|-----|
 | Backend API | https://kirana-store-api.onrender.com |
 | Frontend Website | https://kirana-store-frontend.onrender.com |
 | Admin Panel | https://kirana-store-frontend.onrender.com/admin |
 
 ---
 
-## STEP 1 — Set Up MongoDB Atlas (Free Database)
+## BEFORE YOU START — Set Up MongoDB Atlas
 
-You need a real MongoDB URI before deploying.
-
-1. Go to → https://mongodb.com/atlas → **Sign Up** (free)
-2. Click **"Build a Database"** → Choose **M0 FREE**
-3. Cloud: **AWS** | Region: **Mumbai (ap-south-1)** → Click **Create**
-
-### Create User
-- Left menu → **Database Access** → **Add New Database User**
-- Username: `kiranauser`
-- Password: click **"Autogenerate"** → **COPY IT!**
-- Role: **Atlas Admin**
-- Click **Add User**
-
-### Allow All IPs
-- Left menu → **Network Access** → **Add IP Address**
-- Click **"Allow Access from Anywhere"** → `0.0.0.0/0`
-- Click **Confirm**
-
-### Get Connection String
-- Left menu → **Database** → Click **Connect**
-- Choose **"Connect your application"** → Node.js
-- Copy the string, replace `<password>` with your password, add `/ecommerce` before `?`:
-```
-mongodb+srv://kiranauser:YourPassword@cluster0.xxxxx.mongodb.net/ecommerce?retryWrites=true&w=majority
-```
-**SAVE THIS — you need it for Render**
+1. Go to https://mongodb.com/atlas and sign up free
+2. Create a cluster → Choose M0 FREE → AWS → Mumbai region
+3. Database Access → Add User:
+   - Username: kiranauser
+   - Password: Click "Autogenerate" → COPY AND SAVE THE PASSWORD
+   - Role: Atlas Admin
+4. Network Access → Add IP → Allow Access from Anywhere → 0.0.0.0/0
+5. Database → Connect → Connect your application → Copy the URI:
+   ```
+   mongodb+srv://kiranauser:YOUR_PASSWORD@cluster0.xxxxx.mongodb.net/ecommerce?retryWrites=true&w=majority
+   ```
+   Save this URI. You will need it in Step 2.
 
 ---
 
-## STEP 2 — Deploy Backend on Render
+## STEP 1 — Sign Up on Render
 
-1. Go to → https://render.com → **Sign Up with GitHub**
-
-2. Click **"New +"** → **"Web Service"**
-
-3. Connect GitHub → Select **kirana-store** repo
-
-4. Fill in settings:
-
-   | Field | Value |
-   |-------|-------|
-   | **Name** | `kirana-store-api` |
-   | **Region** | `Singapore` |
-   | **Branch** | `main` |
-   | **Root Directory** | `backend` |
-   | **Runtime** | `Node` |
-   | **Build Command** | `npm install && npm run build` |
-   | **Start Command** | `npm start` |
-
-5. Scroll down → Click **"Advanced"** → **"Add Environment Variable"**
-
-   Add ALL of these:
-
-   | Key | Value |
-   |-----|-------|
-   | `NODE_ENV` | `production` |
-   | `MONGODB_URI` | `mongodb+srv://kiranauser:YourPassword@cluster0.xxxxx.mongodb.net/ecommerce?retryWrites=true&w=majority` |
-   | `JWT_SECRET` | `kirana-jwt-secret-super-secure-32-chars-2024` |
-   | `JWT_REFRESH_SECRET` | `kirana-refresh-super-secure-32-chars-2024` |
-   | `JWT_EXPIRE` | `15m` |
-   | `JWT_REFRESH_EXPIRE` | `7d` |
-   | `FRONTEND_URL` | `https://kirana-store-frontend.onrender.com` |
-   | `CORS_ORIGIN` | `https://kirana-store-frontend.onrender.com` |
-   | `ADMIN_EMAIL` | `admin@kiranastore.com` |
-   | `ADMIN_PASSWORD` | `Admin@123456` |
-   | `RATE_LIMIT_WINDOW_MS` | `900000` |
-   | `RATE_LIMIT_MAX_REQUESTS` | `100` |
-   | `SESSION_SECRET` | `kirana-session-super-secure-32-chars-2024` |
-
-6. Click **"Create Web Service"**
-
-7. Wait **5-7 minutes** for build to complete
-
-8. ✅ **Test it**: Open `https://kirana-store-api.onrender.com/health`
-   - Should show: `{"success":true,"message":"Server is healthy"}`
-
-### Seed Production Database
-After backend is running:
-- Render Dashboard → **kirana-store-api** → **Shell** tab
-- Type: `npm run seed`
-- Press Enter → Wait for seeding to complete
+1. Go to https://render.com
+2. Click "Get Started for Free"
+3. Sign up with your GitHub account (suhasaki57-ops)
+4. Authorize Render to access your repositories
 
 ---
 
-## STEP 3 — Deploy Frontend on Render
+## STEP 2 — Deploy Backend API
 
-1. Back on Render → Click **"New +"** → **"Web Service"**
+1. On Render Dashboard → Click "New +" → "Web Service"
+2. Click "Connect" next to "kirana-store" repository
+3. Fill in these settings:
 
-2. Connect GitHub → Select **kirana-store** repo (same repo)
+   ```
+   Name:            kirana-store-api
+   Region:          Singapore (Southeast Asia)
+   Branch:          main
+   Root Directory:  backend
+   Runtime:         Node
+   Build Command:   npm install && npm run build
+   Start Command:   npm start
+   ```
 
-3. Fill in settings:
+4. Click "Advanced" → Click "Add Environment Variable"
+5. Add these environment variables one by one:
 
-   | Field | Value |
-   |-------|-------|
-   | **Name** | `kirana-store-frontend` |
-   | **Region** | `Singapore` |
-   | **Branch** | `main` |
-   | **Root Directory** | `frontend` |
-   | **Runtime** | `Node` |
-   | **Build Command** | `npm install && npm run build` |
-   | **Start Command** | `npm start` |
+   ```
+   NODE_ENV            = production
+   MONGODB_URI         = mongodb+srv://kiranauser:YOUR_PASSWORD@cluster0.xxxxx.mongodb.net/ecommerce?retryWrites=true&w=majority
+   JWT_SECRET          = kirana-jwt-super-secret-key-2024-minimum-32chars
+   JWT_REFRESH_SECRET  = kirana-refresh-super-secret-key-2024-min-32chars
+   JWT_EXPIRE          = 15m
+   JWT_REFRESH_EXPIRE  = 7d
+   FRONTEND_URL        = https://kirana-store-frontend.onrender.com
+   CORS_ORIGIN         = https://kirana-store-frontend.onrender.com
+   ADMIN_EMAIL         = admin@kiranastore.com
+   ADMIN_PASSWORD      = Admin@123456
+   SESSION_SECRET      = kirana-session-super-secret-key-2024-min-32chars
+   RATE_LIMIT_WINDOW_MS = 900000
+   RATE_LIMIT_MAX_REQUESTS = 100
+   ```
 
-4. Click **"Advanced"** → **"Add Environment Variable"**
+6. Click "Create Web Service"
+7. Wait 5-7 minutes for deployment to complete
+8. When you see "Live" status, test it:
+   Open: https://kirana-store-api.onrender.com/health
+   You should see: {"success":true,"message":"Server is healthy"}
 
-   Add these:
+9. IMPORTANT — Seed the database:
+   - In Render dashboard → kirana-store-api → Shell tab
+   - Type: npm run seed
+   - Press Enter and wait for:
+     "KIRANA STORE SEEDING COMPLETED!"
 
-   | Key | Value |
-   |-----|-------|
-   | `NODE_ENV` | `production` |
-   | `NEXT_PUBLIC_API_URL` | `https://kirana-store-api.onrender.com/api/v1` |
-   | `NEXT_PUBLIC_FRONTEND_URL` | `https://kirana-store-frontend.onrender.com` |
+---
 
-5. Click **"Create Web Service"**
+## STEP 3 — Deploy Frontend
 
-6. Wait **5-8 minutes** for Next.js build to complete
+1. On Render Dashboard → Click "New +" → "Web Service"
+2. Click "Connect" next to "kirana-store" repository (same repo)
+3. Fill in these settings:
 
-7. ✅ **Test it**: Open `https://kirana-store-frontend.onrender.com`
-   - Your Kirana Store homepage should load!
+   ```
+   Name:            kirana-store-frontend
+   Region:          Singapore (Southeast Asia)
+   Branch:          main
+   Root Directory:  frontend
+   Runtime:         Node
+   Build Command:   npm install && npm run build
+   Start Command:   npm start
+   ```
+
+4. Click "Advanced" → Click "Add Environment Variable"
+5. Add these environment variables:
+
+   ```
+   NODE_ENV                    = production
+   NEXT_PUBLIC_API_URL         = https://kirana-store-api.onrender.com/api/v1
+   NEXT_PUBLIC_FRONTEND_URL    = https://kirana-store-frontend.onrender.com
+   ```
+
+6. Click "Create Web Service"
+7. Wait 8-10 minutes (Next.js build takes longer)
+8. When "Live" status shows, open:
+   https://kirana-store-frontend.onrender.com
+   Your Kirana Store homepage should load!
 
 ---
 
 ## STEP 4 — Update Backend CORS
 
-After frontend is deployed:
+After frontend is deployed and you have the exact URL:
 
-1. Render Dashboard → **kirana-store-api** → **Environment**
-2. Update these values with your actual Render URLs:
-   - `FRONTEND_URL` → `https://kirana-store-frontend.onrender.com`
-   - `CORS_ORIGIN` → `https://kirana-store-frontend.onrender.com`
-3. Click **"Save Changes"** → Service auto-restarts
-
----
-
-## Final URLs
-
-| Page | Live URL |
-|------|----------|
-| 🏠 Homepage | https://kirana-store-frontend.onrender.com |
-| 🛒 Products | https://kirana-store-frontend.onrender.com/products |
-| 🛠️ Admin Panel | https://kirana-store-frontend.onrender.com/admin |
-| 🔧 API Health | https://kirana-store-api.onrender.com/health |
-
-## Login Credentials
-
-| Role | Email | Password |
-|------|-------|----------|
-| Admin | admin@kiranastore.com | Admin@123456 |
-| Customer | user@test.com | User@123456 |
-
-## Coupon Codes
-- `KIRANA10` — 10% off above ₹200
-- `SAVE50` — ₹50 off above ₹500
-- `NAYA100` — ₹100 off above ₹999
+1. Render Dashboard → kirana-store-api → Environment tab
+2. Update these two values with your actual frontend URL:
+   - FRONTEND_URL → https://kirana-store-frontend.onrender.com
+   - CORS_ORIGIN → https://kirana-store-frontend.onrender.com
+3. Click "Save Changes"
+4. The service restarts automatically
 
 ---
 
-## ⚠️ Important Notes
+## Your Live Application
 
-### Free Tier Limitations
-- Render free tier **sleeps after 15 minutes** of inactivity
-- First visit after sleep takes **30-60 seconds** to wake up
-- Fix: Sign up at https://uptimerobot.com (free) → Add monitor for your API URL → Set interval to 14 minutes
+After completing all steps:
 
-### Build Time
-- Backend build: ~3-5 minutes
-- Frontend build: ~5-10 minutes (Next.js takes longer)
-- Total: ~15-20 minutes for first deployment
+```
+Website:     https://kirana-store-frontend.onrender.com
+Admin:       https://kirana-store-frontend.onrender.com/admin
+API:         https://kirana-store-api.onrender.com
+API Health:  https://kirana-store-api.onrender.com/health
+```
 
-### If Build Fails
-- Check Render build logs for errors
-- Most common issue: `MONGODB_URI` not set correctly
-- Make sure MongoDB Atlas IP whitelist has `0.0.0.0/0`
+Login credentials:
+```
+Admin:    admin@kiranastore.com  /  Admin@123456
+Customer: user@test.com          /  User@123456
+```
+
+Coupon codes:
+```
+KIRANA10  -  10% off on orders above Rs.200
+SAVE50    -  Rs.50 off on orders above Rs.500
+NAYA100   -  Rs.100 off on orders above Rs.999
+```
 
 ---
 
-## Summary — What Each Service Does
+## Common Issues
 
-| Service | What It Does |
-|---------|-------------|
-| `kirana-store-api` | Express.js REST API, connects to MongoDB Atlas |
-| `kirana-store-frontend` | Next.js website, calls the API |
-| MongoDB Atlas | Stores all data (products, orders, users) |
+ISSUE: Website loads but products don't show
+FIX: Check NEXT_PUBLIC_API_URL is set correctly in frontend environment variables
 
-**Your GitHub Repo:** https://github.com/suhasaki57-ops/kirana-store
+ISSUE: Backend build fails
+FIX: Check that MONGODB_URI is correct. Make sure password has no special characters.
+
+ISSUE: Login doesn't work
+FIX: Make sure you ran "npm run seed" in the backend Shell
+
+ISSUE: First page load is very slow (30-60 seconds)
+FIX: This is normal on Render free tier. The service sleeps after 15 min inactivity.
+To keep it awake: Sign up at https://uptimerobot.com (free) and add a monitor
+for https://kirana-store-api.onrender.com/health with 14-minute interval.
+
+ISSUE: CORS error in browser console
+FIX: Update CORS_ORIGIN in backend to match your exact frontend URL
+
+---
+
+## GitHub Repository
+
+https://github.com/suhasaki57-ops/kirana-store
