@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { useForm } from 'react-hook-form';
 import { RootState } from '@/store';
 import { saveSettings, StoreSettings } from '@/store/slices/settingsSlice';
+import { SupabaseCard } from '@/components/admin/SupabaseCard';
 import toast from 'react-hot-toast';
 import { Save, CheckCircle } from 'lucide-react';
 
@@ -95,6 +96,9 @@ export default function AdminSettingsPage() {
             <span className="rounded-full bg-green-600 px-2.5 py-0.5 text-xs font-bold text-white">Active</span>
           </div>
         </div>
+
+        {/* Supabase Database & Cloud Integration */}
+        <SupabaseCard />
 
         {/* Save button */}
         <button

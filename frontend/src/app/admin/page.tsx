@@ -1,6 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { DashboardStats } from '@/components/admin/DashboardStats';
+import { SupabaseCard } from '@/components/admin/SupabaseCard';
 import { SalesChart } from '@/components/admin/SalesChart';
 import { RecentOrders } from '@/components/admin/RecentOrders';
 import { PlusCircle, ShoppingCart, Users, Package } from 'lucide-react';
@@ -37,6 +38,9 @@ export default function AdminDashboard() {
 
       {/* Stats */}
       <DashboardStats />
+
+      {/* Supabase Connection */}
+      <SupabaseCard />
 
       {/* Quick actions */}
       <div>

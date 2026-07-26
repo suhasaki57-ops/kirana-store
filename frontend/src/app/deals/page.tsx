@@ -17,12 +17,13 @@ const dealProducts = [
   { _id:'8',  name:'Lifebuoy Soap Pack of 4',           slug:'lifebuoy-soap-pack-of-4',           price:96,  comparePrice:130, images:[{url:'https://images.unsplash.com/photo-1556228578-0d85b1a4d571?w=400'}], averageRating:4.5, numReviews:880, stock:500 },
 ];
 
+const COUNTDOWN_END = 23 * 3600 + 45 * 60 + 30;
+
 function Countdown() {
-  const END = 23 * 3600 + 45 * 60 + 30;
-  const [secs, setSecs] = useState(END);
+  const [secs, setSecs] = useState(COUNTDOWN_END);
 
   useEffect(() => {
-    const t = setInterval(() => setSecs(s => (s <= 1 ? END : s - 1)), 1000);
+    const t = setInterval(() => setSecs(s => (s <= 1 ? COUNTDOWN_END : s - 1)), 1000);
     return () => clearInterval(t);
   }, []);
 
@@ -50,7 +51,7 @@ export default function DealsPage() {
         <div className="bg-gradient-to-r from-green-700 to-green-500 text-white py-8 px-4">
           <div className="container text-center">
             <p className="text-sm font-semibold uppercase tracking-widest opacity-80 mb-2">Limited Time Offers</p>
-            <h1 className="text-3xl font-extrabold mb-3">Today's Best Deals 🔥</h1>
+            <h1 className="text-3xl font-extrabold mb-3">Today&apos;s Best Deals 🔥</h1>
             <p className="text-sm opacity-90 mb-4">Grab the best grocery deals before they expire!</p>
             <div className="flex items-center justify-center gap-3">
               <Timer className="h-5 w-5" />

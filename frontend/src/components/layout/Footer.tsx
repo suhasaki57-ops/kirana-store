@@ -36,7 +36,7 @@ export function Footer() {
             <ul className="space-y-2 text-sm text-muted-foreground">
               <li><Link href="/products" className="hover:text-green-700">All Products</Link></li>
               <li><Link href="/categories" className="hover:text-green-700">Categories</Link></li>
-              <li><Link href="/deals" className="hover:text-green-700">Today's Deals</Link></li>
+              <li><Link href="/deals" className="hover:text-green-700">Today&apos;s Deals</Link></li>
               <li><Link href="/products?featured=true" className="hover:text-green-700">Featured Items</Link></li>
             </ul>
           </div>

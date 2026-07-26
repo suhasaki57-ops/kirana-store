@@ -44,17 +44,16 @@ export const getCategories = asyncHandler(
 // @access  Public
 export const getCategory = asyncHandler(
   async (req: AuthRequest, res: Response) => {
-    const category = await Category.findById(req.params.id).populate(
-      'parent',
-      'name slug'
-    );
+    const category = await Category.findById(req.params.id)
+      .populate('parent', 'name slug')
+      .lean();
 
     if (!category) {
       throw new AppError('Category not found', 404);
     }
 
     // Get subcategories
-    const subcategories = await Category.find({ parent: category._id });
+    const subcategories = await Category.find({ parent: (category as any)._id }).lean();
 
     return ApiResponse.success(res, 'Category retrieved successfully', {
       category,
@@ -68,17 +67,16 @@ export const getCategory = asyncHandler(
 // @access  Public
 export const getCategoryBySlug = asyncHandler(
   async (req: AuthRequest, res: Response) => {
-    const category = await Category.findOne({ slug: req.params.slug }).populate(
-      'parent',
-      'name slug'
-    );
+    const category = await Category.findOne({ slug: req.params.slug })
+      .populate('parent', 'name slug')
+      .lean();
 
     if (!category) {
       throw new AppError('Category not found', 404);
     }
 
     // Get subcategories
-    const subcategories = await Category.find({ parent: category._id });
+    const subcategories = await Category.find({ parent: (category as any)._id }).lean();
 
     return ApiResponse.success(res, 'Category retrieved successfully', {
       category,

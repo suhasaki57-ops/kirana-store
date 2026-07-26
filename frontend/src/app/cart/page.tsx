@@ -78,7 +78,7 @@ export default function CartPage() {
             {items.map(item => (
               <div key={item.id} className="flex gap-4 rounded-lg border bg-white p-4 shadow-sm">
                 <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-md bg-gray-50">
-                  <Image src={item.image} alt={item.name} fill className="object-cover" unoptimized />
+                  <Image src={item.image} alt={item.name} fill sizes="96px" className="object-cover" />
                 </div>
                 <div className="flex flex-1 flex-col justify-between">
                   <div className="flex items-start justify-between gap-2">
@@ -132,7 +132,7 @@ export default function CartPage() {
               {applied && (
                 <div className="mt-2 flex items-center justify-between rounded-md bg-green-50 px-3 py-2">
                   <p className="text-xs font-semibold text-green-700">
-                    Code "{applied.code}" applied — saving {formatPrice(applied.disc)}!
+                    Code &quot;{applied.code}&quot; applied — saving {formatPrice(applied.disc)}!
                   </p>
                   <button onClick={() => { setApplied(null); setCoupon(''); }}
                     className="text-xs text-red-500 hover:text-red-700">Remove</button>

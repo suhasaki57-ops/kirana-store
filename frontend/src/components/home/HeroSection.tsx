@@ -46,7 +46,7 @@ export function HeroSection() {
                 href="/products?featured=true"
                 className="inline-flex items-center justify-center gap-2 rounded-md border-2 border-green-600 px-8 py-3 text-sm font-semibold text-green-700 hover:bg-green-50 transition-colors"
               >
-                Today's Deals
+                Today&apos;s Deals
               </Link>
             </div>
 

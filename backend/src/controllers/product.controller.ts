@@ -94,7 +94,8 @@ export const getProduct = asyncHandler(
   async (req: AuthRequest, res: Response) => {
     const product = await Product.findById(req.params.id)
       .populate('category', 'name slug')
-      .populate('subcategory', 'name slug');
+      .populate('subcategory', 'name slug')
+      .lean();
 
     if (!product) {
       throw new AppError('Product not found', 404);
@@ -111,7 +112,8 @@ export const getProductBySlug = asyncHandler(
   async (req: AuthRequest, res: Response) => {
     const product = await Product.findOne({ slug: req.params.slug })
       .populate('category', 'name slug')
-      .populate('subcategory', 'name slug');
+      .populate('subcategory', 'name slug')
+      .lean();
 
     if (!product) {
       throw new AppError('Product not found', 404);

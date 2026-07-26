@@ -85,7 +85,7 @@ export default function CategoriesPage() {
             {categories.map((cat) => (
               <Link
                 key={cat.slug}
-                href={`/products?category=${cat.slug}`}
+                href={`/categories/${cat.slug}`}
                 className={`group flex flex-col items-center text-center rounded-2xl border-2 ${cat.border} ${cat.bg} p-8 shadow-sm hover:shadow-md transition-all hover:-translate-y-1`}
               >
                 <span className="text-6xl mb-4">{cat.emoji}</span>

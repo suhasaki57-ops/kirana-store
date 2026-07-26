@@ -28,29 +28,62 @@ const ALL_PRODUCTS = [
 ];
 
 export default function ProductsPage() {
-  const searchParams  = useSearchParams();
-  const urlSearch     = searchParams.get('search') || '';
+  const searchParams = useSearchParams();
+  const urlSearch = searchParams.get('search') || '';
+  const urlCategory = searchParams.get('category') || '';
 
-  const [search,    setSearch]    = useState(urlSearch);
-  const [sortBy,    setSortBy]    = useState('featured');
-  const [cats,      setCats]      = useState<string[]>([]);
-  const [maxPrice,  setMaxPrice]  = useState(600);
+  const [search, setSearch] = useState(urlSearch);
+  const [debouncedSearch, setDebouncedSearch] = useState(urlSearch);
+  const [sortBy, setSortBy] = useState('featured');
+  const [cats, setCats] = useState<string[]>([]);
+  const [maxPrice, setMaxPrice] = useState(600);
   const [minRating, setMinRating] = useState(0);
-  const [showFilter,setShowFilter]= useState(false);
-  const [mounted,   setMounted]   = useState(false);
+  const [showFilter, setShowFilter] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
-  useEffect(() => { setMounted(true); }, []);
-  useEffect(() => { setSearch(urlSearch); }, [urlSearch]);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 150);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  useEffect(() => {
+    setSearch(urlSearch);
+    setDebouncedSearch(urlSearch);
+    if (urlCategory) {
+      setCats([urlCategory]);
+    }
+  }, [urlSearch, urlCategory]);
 
   const filtered = useMemo(() => {
     let list = [...ALL_PRODUCTS];
-    if (search)    list = list.filter(p => p.name.toLowerCase().includes(search.toLowerCase()) || p.category.toLowerCase().includes(search.toLowerCase()));
-    if (cats.length) list = list.filter(p => cats.includes(p.category));
-    list = list.filter(p => p.price <= maxPrice);
-    if (minRating) list = list.filter(p => p.averageRating >= minRating);
-    if (sortBy === 'price-asc')  list.sort((a,b) => a.price - b.price);
-    if (sortBy === 'price-desc') list.sort((a,b) => b.price - a.price);
-    if (sortBy === 'rating')     list.sort((a,b) => b.averageRating - a.averageRating);
+    if (debouncedSearch) {
+      const q = debouncedSearch.toLowerCase();
+      list = list.filter(
+        (p) => p.name.toLowerCase().includes(q) || p.category.toLowerCase().includes(q)
+      );
+    }
+    if (cats.length) {
+      list = list.filter((p) =>
+        cats.some(
+          (c) =>
+            c.toLowerCase() === p.category.toLowerCase() ||
+            c.toLowerCase() === p.category.toLowerCase().replace(/\s*&\s*/g, '-').replace(/\s+/g, '-')
+        )
+      );
+    }
+    list = list.filter((p) => p.price <= maxPrice);
+    if (minRating) {
+      list = list.filter((p) => p.averageRating >= minRating);
+    }
+    if (sortBy === 'price-asc') list.sort((a, b) => a.price - b.price);
+    if (sortBy === 'price-desc') list.sort((a, b) => b.price - a.price);
+    if (sortBy === 'rating') list.sort((a, b) => b.averageRating - a.averageRating);
     return list;
   }, [search, cats, maxPrice, minRating, sortBy]);
 

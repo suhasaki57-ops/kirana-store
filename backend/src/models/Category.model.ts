@@ -22,7 +22,6 @@ const categorySchema = new Schema(
   { timestamps: true }
 );
 
-categorySchema.index({ slug: 1 });
 categorySchema.index({ parent: 1 });
 categorySchema.index({ isActive: 1 });
 

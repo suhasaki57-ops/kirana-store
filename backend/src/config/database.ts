@@ -12,7 +12,8 @@ const isPlaceholderURI = (uri: string) =>
   uri.includes('your-') ||
   uri.includes('<') ||
   uri.includes('mernuser') ||
-  uri.includes('testuser');
+  uri.includes('testuser') ||
+  (!uri.startsWith('mongodb://') && !uri.startsWith('mongodb+srv://'));
 
 const connectDB = async (): Promise<void> => {
   const configuredURI = process.env.MONGODB_URI || '';
@@ -35,10 +36,14 @@ const connectDB = async (): Promise<void> => {
     if (fs.existsSync(MEMDB_URI_FILE)) {
       const sharedURI = fs.readFileSync(MEMDB_URI_FILE, 'utf-8').trim();
       if (sharedURI) {
-        uri = sharedURI;
-        logger.info(`🔗 Connecting to shared in-memory MongoDB → ${uri}`);
-        await connectMongo(uri);
-        return;
+        try {
+          logger.info(`🔗 Connecting to shared in-memory MongoDB → ${sharedURI}`);
+          await connectMongo(sharedURI, false);
+          return;
+        } catch {
+          logger.warn('⚠️ Shared in-memory MongoDB unreachable. Creating new instance...');
+          try { fs.unlinkSync(MEMDB_URI_FILE); } catch {}
+        }
       }
     }
 
@@ -66,10 +71,10 @@ const connectDB = async (): Promise<void> => {
   await connectMongo(uri);
 };
 
-async function connectMongo(uri: string): Promise<void> {
+async function connectMongo(uri: string, exitOnError = true): Promise<void> {
   try {
     await mongoose.connect(uri, {
-      serverSelectionTimeoutMS: 15000,
+      serverSelectionTimeoutMS: 5000,
       socketTimeoutMS: 45000,
     });
     logger.info(`✅ MongoDB Connected → ${mongoose.connection.host}`);
@@ -78,6 +83,7 @@ async function connectMongo(uri: string): Promise<void> {
     mongoose.connection.on('disconnected', () => logger.warn('MongoDB disconnected'));
     mongoose.connection.on('reconnected',  () => logger.info('MongoDB reconnected'));
   } catch (error) {
+    if (!exitOnError) throw error;
     logger.error('❌ MongoDB connection failed:', error);
     process.exit(1);
   }

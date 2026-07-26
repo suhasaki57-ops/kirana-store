@@ -7,7 +7,8 @@ const nextConfig = {
       { protocol: 'https', hostname: 'images.unsplash.com' },
       { protocol: 'https', hostname: '**.cloudinary.com' },
     ],
-    unoptimized: true,
+    formats: ['image/avif', 'image/webp'],
+    minimumCacheTTL: 86400,
   },
   env: {
     NEXT_PUBLIC_API_URL:      process.env.NEXT_PUBLIC_API_URL      || 'http://localhost:5000/api/v1',
