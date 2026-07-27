@@ -22,7 +22,10 @@
     "clean": "rm -rf node_modules frontend/node_modules backend/node_modules frontend/.next backend/dist"
   },
   "devDependencies": {
-    "concurrently": "^8.2.2"
+    "autoprefixer": "^10.5.4",
+    "concurrently": "^8.2.2",
+    "postcss": "^8.5.23",
+    "tailwindcss": "^4.3.3"
   },
   "engines": {
     "node": ">=18.0.0",
