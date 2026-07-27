@@ -1,0 +1,30 @@
+{
+  "services": {
+    "kirana-store-api": {
+      "root": "backend",
+      "entrypoint": "dist/server.js",
+      "buildCommand": "npm install && npm run build"
+    },
+    "kirana-store-frontend": {
+      "root": "frontend",
+      "framework": "nextjs",
+      "buildCommand": "npm install && npm run build"
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/api/kirana-store-api(/.*)?",
+      "destination": {
+        "type": "service",
+        "service": "kirana-store-api"
+      }
+    },
+    {
+      "source": "/(.*)",
+      "destination": {
+        "type": "service",
+        "service": "kirana-store-frontend"
+      }
+    }
+  ]
+}
