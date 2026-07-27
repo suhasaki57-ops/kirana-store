@@ -4,7 +4,7 @@ import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard, Package, PlusCircle, ShoppingCart,
   Users, Tag, Ticket, Image as ImageIcon,
-  BarChart3, Settings,
+  BarChart3, Settings, BrainCircuit
 } from 'lucide-react';
 
 const nav = [
@@ -16,6 +16,7 @@ const nav = [
   { label:'Categories',   href:'/admin/categories',      icon: Tag },
   { label:'Coupons',      href:'/admin/coupons',         icon: Ticket },
   { label:'Banners',      href:'/admin/banners',         icon: ImageIcon },
+  { label:'AI Knowledge (RAG)', href:'/admin/knowledge', icon: BrainCircuit },
   { label:'Reports',      href:'/admin/reports',         icon: BarChart3 },
   { label:'Settings',     href:'/admin/settings',        icon: Settings },
 ];
