@@ -16,16 +16,12 @@ interface AuthState {
   loading: boolean;
 }
 
-// Safe cookie read — works on both server and client
-const getToken = () => {
-  if (typeof window === 'undefined') return null;
-  return Cookies.get('token') || null;
-};
-
+// Always start with empty state to prevent SSR/client hydration mismatch.
+// The Providers component rehydrates auth from cookies on mount (client-only).
 const initialState: AuthState = {
   user: null,
-  token: getToken(),
-  isAuthenticated: !!getToken(),
+  token: null,
+  isAuthenticated: false,
   loading: false,
 };
 
@@ -37,21 +33,32 @@ const authSlice = createSlice({
       state,
       action: PayloadAction<{ user: User; token: string; refreshToken: string }>
     ) => {
-      state.user = action.payload.user;
-      state.token = action.payload.token;
+      state.user            = action.payload.user;
+      state.token           = action.payload.token;
       state.isAuthenticated = true;
-      Cookies.set('token', action.payload.token, { expires: 1/96 }); // 15 minutes
-      Cookies.set('refreshToken', action.payload.refreshToken, { expires: 7 });
+      if (typeof window !== 'undefined') {
+        Cookies.set('token',        action.payload.token,        { expires: 1 / 96 }); // 15 min
+        Cookies.set('refreshToken', action.payload.refreshToken, { expires: 7 });
+      }
     },
     setUser: (state, action: PayloadAction<User>) => {
       state.user = action.payload;
     },
+    // Rehydrate from cookies on client after mount
+    rehydrateAuth: (state) => {
+      if (typeof window === 'undefined') return;
+      const token = Cookies.get('token') || null;
+      state.token           = token;
+      state.isAuthenticated = !!token;
+    },
     logout: (state) => {
-      state.user = null;
-      state.token = null;
+      state.user            = null;
+      state.token           = null;
       state.isAuthenticated = false;
-      Cookies.remove('token');
-      Cookies.remove('refreshToken');
+      if (typeof window !== 'undefined') {
+        Cookies.remove('token');
+        Cookies.remove('refreshToken');
+      }
     },
     setLoading: (state, action: PayloadAction<boolean>) => {
       state.loading = action.payload;
@@ -59,5 +66,6 @@ const authSlice = createSlice({
   },
 });
 
-export const { setCredentials, setUser, logout, setLoading } = authSlice.actions;
+export const { setCredentials, setUser, rehydrateAuth, logout, setLoading } =
+  authSlice.actions;
 export default authSlice.reducer;

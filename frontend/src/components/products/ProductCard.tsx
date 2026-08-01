@@ -37,6 +37,9 @@ export function ProductCard({ product }: ProductCardProps) {
   const wishlistIds = useSelector((s: RootState) => s.wishlist.productIds);
   const isWishlisted = wishlistIds.includes(product._id);
 
+  const initialImage = product.images[0]?.url || 'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=400';
+  const [imgSrc, setImgSrc] = useState(initialImage);
+
   const discount = product.comparePrice
     ? Math.round(((product.comparePrice - product.price) / product.comparePrice) * 100)
     : 0;
@@ -51,7 +54,7 @@ export function ProductCard({ product }: ProductCardProps) {
       name:         product.name,
       price:        product.price,
       comparePrice: product.comparePrice,
-      image:        product.images[0]?.url || '',
+      image:        imgSrc,
       slug:         product.slug,
     }));
 
@@ -88,9 +91,11 @@ export function ProductCard({ product }: ProductCardProps) {
         {/* Product image */}
         <div className="relative aspect-square overflow-hidden rounded-lg bg-gray-50">
           <Image
-            src={product.images[0]?.url || 'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=400'}
-            alt={product.images[0]?.alt || product.name}
+            src={imgSrc}
+            alt={product.name}
             fill
+            unoptimized={imgSrc.startsWith('data:') || imgSrc.startsWith('blob:')}
+            onError={() => setImgSrc('https://images.unsplash.com/photo-1586201375761-83865001e31c?w=400')}
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
             className="object-cover transition-transform duration-300 group-hover:scale-105"
           />

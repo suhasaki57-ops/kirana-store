@@ -26,6 +26,7 @@ import adminRoutes from './routes/admin.routes';
 import bannerRoutes from './routes/banner.routes';
 import notificationRoutes from './routes/notification.routes';
 import addressRoutes from './routes/address.routes';
+import chatRoutes from './routes/chat.routes';
 
 // Import Stripe webhook handler separately (needs raw body)
 import { stripeWebhook } from './controllers/payment.controller';
@@ -130,6 +131,7 @@ app.use(`${API_VERSION}/admin`, adminRoutes);
 app.use(`${API_VERSION}/banners`, bannerRoutes);
 app.use(`${API_VERSION}/notifications`, notificationRoutes);
 app.use(`${API_VERSION}/addresses`, addressRoutes);
+app.use(`${API_VERSION}/chat`, chatRoutes);
 
 // Welcome route
 app.get('/', (_req: Request, res: Response) => {

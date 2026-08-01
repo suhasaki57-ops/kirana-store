@@ -1,5 +1,5 @@
 'use client';
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -7,6 +7,9 @@ import { z } from 'zod';
 import Link from 'next/link';
 import { UploadCloud, X, ArrowLeft, Save, Plus } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useDispatch, useSelector } from 'react-redux';
+import { RootState } from '@/store';
+import { updateProduct, AdminProduct } from '@/store/slices/productsAdminSlice';
 
 const schema = z.object({
   name:        z.string().min(3, 'Product name is required'),
@@ -25,52 +28,128 @@ type FormData = z.infer<typeof schema>;
 
 const CATEGORIES = ['Grains & Pulses','Spices & Masala','Oils & Ghee','Cleaning & Home','Personal Care','Snacks & Beverages'];
 
-const SAMPLE_PRODUCTS: Record<string, FormData & { existingImage: string }> = {
-  '1': { name:'India Gate Basmati Rice 5kg',      category:'Grains & Pulses',    description:'Premium long grain basmati rice. Aged for extra flavour. Perfect for biryani, pulao and everyday meals.', price:499, mrp:580, stock:200, sku:'RICE-001', brand:'India Gate', tags:'rice,basmati,grains', status:'active',   featured:true,  existingImage:'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=300' },
-  '2': { name:'Aashirvaad Whole Wheat Atta 10kg', category:'Grains & Pulses',    description:'Chakki fresh atta made from 100% whole wheat. Rich in fibre, ideal for soft rotis.',               price:380, mrp:420, stock:150, sku:'ATTA-001', brand:'Aashirvaad', tags:'atta,wheat,flour', status:'active',   featured:true,  existingImage:'https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?w=300' },
-  '7': { name:'Surf Excel Easy Wash 1kg',          category:'Cleaning & Home',    description:'Surf Excel removes tough stains in just one wash. Works in hand wash and machine wash.',              price:138, mrp:160, stock:300, sku:'SURF-001', brand:'Surf Excel', tags:'detergent,washing', status:'active',   featured:false, existingImage:'https://images.unsplash.com/photo-1582735689369-4fe89db7114c?w=300' },
-  '8': { name:'Tata Chai Premium Tea 500g',        category:'Snacks & Beverages', description:'Tata Tea Premium — strong, flavourful and refreshing. Made from finest Assam tea leaves.',          price:235, mrp:270, stock:280, sku:'TEA-001',  brand:'Tata Tea',   tags:'tea,chai,assam',  status:'inactive', featured:true,  existingImage:'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=300' },
-};
-
 interface ImagePreview { file: File; preview: string; }
+
+const readFileAsBase64 = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+};
 
 export default function EditProductPage() {
   const router   = useRouter();
   const params   = useParams();
-  const id       = Array.isArray(params.id) ? params.id[0] : (params.id ?? '1');
-  const sample   = SAMPLE_PRODUCTS[id] ?? SAMPLE_PRODUCTS['1'];
+  const dispatch = useDispatch();
+  const id       = Array.isArray(params.id) ? params.id[0] : (params.id ?? '');
 
-  const fileRef  = useRef<HTMLInputElement>(null);
-  const [newImages,  setNewImages]  = useState<ImagePreview[]>([]);
-  const [keepExisting, setKeepExisting] = useState(true);
-  const [dragging, setDragging]     = useState(false);
+  const products = useSelector((s: RootState) => s.productsAdmin.products);
 
-  const { register, handleSubmit, formState: { errors, isSubmitting }, watch } = useForm<FormData>({
+  const [currentProduct, setCurrentProduct] = useState<AdminProduct | null>(null);
+  const [existingImage, setExistingImage]   = useState<string>('');
+  const [newImages, setNewImages]           = useState<ImagePreview[]>([]);
+  const [keepExisting, setKeepExisting]     = useState(true);
+  const [dragging, setDragging]             = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const { register, handleSubmit, formState: { errors, isSubmitting }, watch, reset } = useForm<FormData>({
     resolver: zodResolver(schema),
-    defaultValues: { ...sample },
+    defaultValues: { status: 'active', featured: false },
   });
 
-  const addFiles = (files: FileList | null) => {
+  useEffect(() => {
+    let p = products.find((prod) => prod.id === id);
+    if (!p && typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem('kirana_admin_products');
+        if (stored) {
+          const list: AdminProduct[] = JSON.parse(stored);
+          p = list.find((prod) => prod.id === id);
+        }
+      } catch {}
+    }
+
+    if (p) {
+      setCurrentProduct(p);
+      setExistingImage(p.image || '');
+      reset({
+        name: p.name,
+        category: p.category,
+        description: p.description || '',
+        price: p.price,
+        mrp: p.mrp,
+        stock: p.stock,
+        sku: p.sku,
+        brand: p.brand || '',
+        tags: p.tags || '',
+        status: p.status,
+        featured: p.featured ?? false,
+      });
+    }
+  }, [id, products, reset]);
+
+  const addFiles = async (files: FileList | null) => {
     if (!files) return;
-    setNewImages(p => [...p, ...Array.from(files).map(f => ({ file: f, preview: URL.createObjectURL(f) }))]);
+    const fileArray = Array.from(files);
+    const previews: ImagePreview[] = [];
+    for (const file of fileArray) {
+      try {
+        const base64 = await readFileAsBase64(file);
+        previews.push({ file, preview: base64 });
+      } catch {
+        previews.push({ file, preview: URL.createObjectURL(file) });
+      }
+    }
+    setNewImages((prev) => [...prev, ...previews]);
   };
 
   const removeNew = (idx: number) => {
-    URL.revokeObjectURL(newImages[idx].preview);
-    setNewImages(p => p.filter((_, i) => i !== idx));
+    if (newImages[idx].preview.startsWith('blob:')) {
+      URL.revokeObjectURL(newImages[idx].preview);
+    }
+    setNewImages((prev) => prev.filter((_, i) => i !== idx));
   };
 
   const onSubmit = async (data: FormData) => {
-    await new Promise(r => setTimeout(r, 800));
+    await new Promise((r) => setTimeout(r, 400));
+
+    let finalImage = existingImage;
+    if (newImages.length > 0) {
+      finalImage = newImages[0].preview;
+    } else if (!keepExisting || !existingImage) {
+      finalImage = 'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=400';
+    }
+
+    dispatch(
+      updateProduct({
+        id,
+        name: data.name,
+        category: data.category,
+        description: data.description,
+        price: data.price,
+        mrp: data.mrp,
+        stock: data.stock,
+        sku: data.sku.toUpperCase(),
+        brand: data.brand || '',
+        tags: data.tags || '',
+        status: data.status,
+        featured: data.featured ?? false,
+        image: finalImage,
+      })
+    );
+
     toast.success(`Product "${data.name}" updated successfully!`);
     router.push('/admin/products');
   };
 
   const sellingPrice = watch('price');
   const mrpPrice     = watch('mrp');
-  const discount = sellingPrice && mrpPrice && mrpPrice > sellingPrice
-    ? Math.round(((mrpPrice - sellingPrice) / mrpPrice) * 100)
-    : 0;
+  const discount =
+    sellingPrice && mrpPrice && mrpPrice > sellingPrice
+      ? Math.round(((mrpPrice - sellingPrice) / mrpPrice) * 100)
+      : 0;
 
   return (
     <div className="max-w-4xl mx-auto space-y-5">
@@ -81,7 +160,9 @@ export default function EditProductPage() {
         </Link>
         <div>
           <h1 className="text-2xl font-bold">Edit Product</h1>
-          <p className="text-sm text-muted-foreground">Editing: {sample.name}</p>
+          <p className="text-sm text-muted-foreground">
+            {currentProduct ? `Editing: ${currentProduct.name}` : 'Loading product details...'}
+          </p>
         </div>
       </div>
 
@@ -175,13 +256,13 @@ export default function EditProductPage() {
               <h3 className="font-semibold text-gray-800">Product Images</h3>
 
               {/* Existing image */}
-              {keepExisting && (
+              {keepExisting && existingImage && (
                 <div>
                   <p className="text-xs font-medium text-muted-foreground mb-2">Current Image</p>
                   <div className="relative inline-block">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={sample.existingImage} alt="" className="h-24 w-24 rounded-lg object-cover border" />
-                    <button type="button" onClick={() => setKeepExisting(false)}
+                    <img src={existingImage} alt="" className="h-24 w-24 rounded-lg object-cover border" />
+                    <button type="button" onClick={() => { setKeepExisting(false); setExistingImage(''); }}
                       className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-600 text-white hover:bg-red-700">
                       <X className="h-3 w-3" />
                     </button>
@@ -200,7 +281,7 @@ export default function EditProductPage() {
                   ${dragging ? 'border-green-500 bg-green-50' : 'border-gray-300 hover:border-green-400 hover:bg-green-50/50'}`}
               >
                 <UploadCloud className="h-7 w-7 text-gray-400" />
-                <p className="text-xs font-semibold text-gray-600">Add more images</p>
+                <p className="text-xs font-semibold text-gray-600">Add or replace images</p>
                 <p className="text-[11px] text-muted-foreground">Drag & drop or click</p>
                 <input ref={fileRef} type="file" accept="image/*" multiple className="hidden"
                   onChange={e => addFiles(e.target.files)} />

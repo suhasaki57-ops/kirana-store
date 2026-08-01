@@ -4,7 +4,7 @@ import { asyncHandler } from '../utils/asyncHandler';
 import { ApiResponse } from '../utils/ApiResponse';
 import { AppError } from '../utils/AppError';
 import User from '../models/User.model';
-import { AuthRequest } from '../types';
+import { AuthRequest, UserRole } from '../types';
 import { sendEmail } from '../services/email.service';
 
 // Cookie options
@@ -20,7 +20,11 @@ const getCookieOptions = (maxAge: number) => ({
 // @access  Public
 export const register = asyncHandler(
   async (req: AuthRequest, res: Response) => {
-    const { name, email, password, phone } = req.body;
+    const { name, email, password, phone, role } = req.body;
+
+    if (!phone) {
+      throw new AppError('Phone number is mandatory', 400);
+    }
 
     // Check if user already exists
     const existingUser = await User.findOne({ email });
@@ -34,6 +38,7 @@ export const register = asyncHandler(
       email,
       password,
       phone,
+      role: role === 'admin' ? UserRole.ADMIN : UserRole.USER,
     });
 
     // Generate tokens
@@ -88,7 +93,11 @@ export const register = asyncHandler(
 // @access  Public
 export const login = asyncHandler(
   async (req: AuthRequest, res: Response) => {
-    const { email, password } = req.body;
+    const { email, password, phone } = req.body;
+
+    if (!phone) {
+      throw new AppError('Phone number is mandatory for login', 400);
+    }
 
     // Check if user exists
     const user = await User.findOne({ email }).select('+password');

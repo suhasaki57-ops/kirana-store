@@ -33,6 +33,15 @@ const CATEGORIES = [
 
 interface ImagePreview { file: File; preview: string; }
 
+const readFileAsBase64 = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+};
+
 export default function AddProductPage() {
   const router   = useRouter();
   const dispatch = useDispatch();
@@ -45,16 +54,25 @@ export default function AddProductPage() {
     defaultValues: { status: 'active', featured: false },
   });
 
-  const addFiles = (files: FileList | null) => {
+  const addFiles = async (files: FileList | null) => {
     if (!files) return;
-    setImages(p => [
-      ...p,
-      ...Array.from(files).map(f => ({ file: f, preview: URL.createObjectURL(f) })),
-    ]);
+    const fileArray = Array.from(files);
+    const newPreviews: ImagePreview[] = [];
+    for (const file of fileArray) {
+      try {
+        const base64 = await readFileAsBase64(file);
+        newPreviews.push({ file, preview: base64 });
+      } catch {
+        newPreviews.push({ file, preview: URL.createObjectURL(file) });
+      }
+    }
+    setImages(p => [...p, ...newPreviews]);
   };
 
   const removeImage = (idx: number) => {
-    URL.revokeObjectURL(images[idx].preview);
+    if (images[idx].preview.startsWith('blob:')) {
+      URL.revokeObjectURL(images[idx].preview);
+    }
     setImages(p => p.filter((_, i) => i !== idx));
   };
 
@@ -75,7 +93,7 @@ export default function AddProductPage() {
       status:      data.status,
       featured:    data.featured ?? false,
       image:       images[0]?.preview ||
-        'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=80',
+        'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=400',
     }));
 
     toast.success(`"${data.name}" added to the store!`, { icon: '✅' });

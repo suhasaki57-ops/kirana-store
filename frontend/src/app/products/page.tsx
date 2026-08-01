@@ -2,41 +2,26 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { useSelector } from 'react-redux';
+import { RootState } from '@/store';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { ProductCard } from '@/components/products/ProductCard';
 import { ProductFilters } from '@/components/products/ProductFilters';
 import { Search, SlidersHorizontal, X } from 'lucide-react';
 
-const ALL_PRODUCTS = [
-  { _id:'1',  name:'India Gate Basmati Rice 5kg',      slug:'india-gate-basmati-rice-5kg',      price:499, comparePrice:580, category:'Grains & Pulses',    images:[{url:'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=400'}], averageRating:4.7, numReviews:540,  stock:200 },
-  { _id:'2',  name:'Aashirvaad Whole Wheat Atta 10kg', slug:'aashirvaad-whole-wheat-atta-10kg', price:380, comparePrice:420, category:'Grains & Pulses',    images:[{url:'https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?w=400'}], averageRating:4.6, numReviews:820,  stock:150 },
-  { _id:'3',  name:'Toor Dal (Arhar) 1kg',             slug:'toor-dal-arhar-1kg',               price:145, comparePrice:165, category:'Grains & Pulses',    images:[{url:'https://images.unsplash.com/photo-1585032226651-759b368d7246?w=400'}], averageRating:4.4, numReviews:310,  stock:300 },
-  { _id:'4',  name:'Sugar (Chini) 1kg - Refined',      slug:'sugar-chini-1kg-refined',          price:52,  comparePrice:60,  category:'Grains & Pulses',    images:[{url:'https://images.unsplash.com/photo-1559561853-08451507cbe7?w=400'}], averageRating:4.3, numReviews:215,  stock:500 },
-  { _id:'5',  name:'Tata Salt Iodised 1kg',            slug:'tata-salt-iodised-1kg',            price:28,  comparePrice:32,  category:'Grains & Pulses',    images:[{url:'https://images.unsplash.com/photo-1563636619-e9143da7973b?w=400'}], averageRating:4.8, numReviews:1020, stock:800 },
-  { _id:'6',  name:'MDH Chana Masala 100g',            slug:'mdh-chana-masala-100g',            price:55,  comparePrice:65,  category:'Spices & Masala',    images:[{url:'https://images.unsplash.com/photo-1596040033229-a9821ebd058d?w=400'}], averageRating:4.6, numReviews:680,  stock:400 },
-  { _id:'7',  name:'Everest Turmeric Powder 200g',     slug:'everest-turmeric-haldi-powder-200g',price:48, comparePrice:58,  category:'Spices & Masala',    images:[{url:'https://images.unsplash.com/photo-1615485500704-8e990f9900f7?w=400'}], averageRating:4.5, numReviews:445,  stock:350 },
-  { _id:'8',  name:'Fortune Sunflower Oil 1 Litre',    slug:'fortune-sunflower-oil-1-litre',    price:142, comparePrice:168, category:'Oils & Ghee',        images:[{url:'https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?w=400'}], averageRating:4.4, numReviews:320,  stock:250 },
-  { _id:'9',  name:'Amul Pure Ghee 500ml',             slug:'amul-pure-ghee-500ml',             price:295, comparePrice:340, category:'Oils & Ghee',        images:[{url:'https://images.unsplash.com/photo-1628088062854-d1870b4553da?w=400'}], averageRating:4.8, numReviews:910,  stock:180 },
-  { _id:'10', name:'Surf Excel Easy Wash 1kg',         slug:'surf-excel-easy-wash-detergent-1kg',price:138,comparePrice:160, category:'Cleaning & Home',    images:[{url:'https://images.unsplash.com/photo-1582735689369-4fe89db7114c?w=400'}], averageRating:4.6, numReviews:750,  stock:300 },
-  { _id:'11', name:'Vim Dishwash Bar (Pack of 3)',     slug:'vim-dishwash-bar-200g-pack-of-3',  price:75,  comparePrice:90,  category:'Cleaning & Home',    images:[{url:'https://images.unsplash.com/photo-1585771724684-38269d6639fd?w=400'}], averageRating:4.4, numReviews:560,  stock:400 },
-  { _id:'12', name:'Phenyl Floor Cleaner 1L',          slug:'phenyl-floor-cleaner-1-litre',     price:89,  comparePrice:110, category:'Cleaning & Home',    images:[{url:'https://images.unsplash.com/photo-1563453392212-326f5e854473?w=400'}], averageRating:4.3, numReviews:290,  stock:200 },
-  { _id:'13', name:'Lifebuoy Total Soap (Pack of 4)',  slug:'lifebuoy-total-soap-100g-pack-of-4',price:96, comparePrice:112, category:'Personal Care',      images:[{url:'https://images.unsplash.com/photo-1556228578-0d85b1a4d571?w=400'}], averageRating:4.5, numReviews:880,  stock:500 },
-  { _id:'14', name:'Colgate Strong Teeth 200g',        slug:'colgate-strong-teeth-toothpaste-200g',price:118,comparePrice:135,category:'Personal Care',     images:[{url:'https://images.unsplash.com/photo-1607613009820-a29f7bb81c04?w=400'}], averageRating:4.6, numReviews:1100, stock:350 },
-  { _id:'15', name:'Tata Chai Premium Tea 500g',       slug:'tata-chai-premium-tea-500g',       price:235, comparePrice:270, category:'Snacks & Beverages', images:[{url:'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400'}], averageRating:4.7, numReviews:720,  stock:280 },
-  { _id:'16', name:'Parle-G Glucose Biscuits 1kg',     slug:'parle-g-original-glucose-biscuits-1kg',price:85,comparePrice:100,category:'Snacks & Beverages',images:[{url:'https://images.unsplash.com/photo-1558961363-fa8fdf82db35?w=400'}], averageRating:4.8, numReviews:1540, stock:600 },
-];
-
 export default function ProductsPage() {
   const searchParams = useSearchParams();
   const urlSearch = searchParams.get('search') || '';
   const urlCategory = searchParams.get('category') || '';
 
+  const { products: storeProducts } = useSelector((s: RootState) => s.productsAdmin);
+
   const [search, setSearch] = useState(urlSearch);
   const [debouncedSearch, setDebouncedSearch] = useState(urlSearch);
   const [sortBy, setSortBy] = useState('featured');
   const [cats, setCats] = useState<string[]>([]);
-  const [maxPrice, setMaxPrice] = useState(600);
+  const [maxPrice, setMaxPrice] = useState(2000);
   const [minRating, setMinRating] = useState(0);
   const [showFilter, setShowFilter] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -60,12 +45,48 @@ export default function ProductsPage() {
     }
   }, [urlSearch, urlCategory]);
 
+  // Combine products from Redux / LocalStorage
+  const allProducts = useMemo(() => {
+    let list: any[] = [];
+    
+    // Check localStorage fallback if store loading
+    let rawList = storeProducts;
+    if (typeof window !== 'undefined' && (!rawList || rawList.length === 0)) {
+      try {
+        const stored = localStorage.getItem('kirana_admin_products');
+        if (stored) rawList = JSON.parse(stored);
+      } catch {}
+    }
+
+    if (rawList && rawList.length > 0) {
+      list = rawList
+        .filter((p: any) => p.status !== 'inactive')
+        .map((p: any) => ({
+          _id: p.id || p._id,
+          name: p.name,
+          slug: p.slug || p.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
+          price: p.price,
+          comparePrice: p.mrp || p.comparePrice || p.price * 1.15,
+          category: p.category,
+          images: p.images || [{ url: p.image || 'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=400' }],
+          averageRating: p.averageRating || 4.5,
+          numReviews: p.numReviews || 48,
+          stock: p.stock ?? 100,
+          description: p.description,
+          brand: p.brand,
+          featured: p.featured,
+        }));
+    }
+
+    return list;
+  }, [storeProducts]);
+
   const filtered = useMemo(() => {
-    let list = [...ALL_PRODUCTS];
+    let list = [...allProducts];
     if (debouncedSearch) {
       const q = debouncedSearch.toLowerCase();
       list = list.filter(
-        (p) => p.name.toLowerCase().includes(q) || p.category.toLowerCase().includes(q)
+        (p) => p.name.toLowerCase().includes(q) || (p.category && p.category.toLowerCase().includes(q))
       );
     }
     if (cats.length) {
@@ -85,9 +106,9 @@ export default function ProductsPage() {
     if (sortBy === 'price-desc') list.sort((a, b) => b.price - a.price);
     if (sortBy === 'rating') list.sort((a, b) => b.averageRating - a.averageRating);
     return list;
-  }, [search, cats, maxPrice, minRating, sortBy]);
+  }, [allProducts, debouncedSearch, cats, maxPrice, minRating, sortBy]);
 
-  const activeFilterCount = cats.length + (maxPrice < 600 ? 1 : 0) + (minRating > 0 ? 1 : 0);
+  const activeFilterCount = cats.length + (maxPrice < 2000 ? 1 : 0) + (minRating > 0 ? 1 : 0);
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
@@ -95,9 +116,9 @@ export default function ProductsPage() {
       <main className="flex-1 container py-6">
         {/* Page header */}
         <div className={`mb-6 transition-all duration-500 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
-          <h1 className="text-2xl font-bold text-gray-800">All Grocery Products</h1>
+          <h1 className="text-2xl font-bold text-gray-800">All Grocery & Marketplace Products</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Sugar, Salt, Atta, Dal, Oils, Soaps, Detergents and more
+            Explore authentic items added by verified local sellers & suppliers
           </p>
         </div>
 
@@ -140,7 +161,7 @@ export default function ProductsPage() {
               minRating={minRating}
               setMinRating={setMinRating}
               activeCount={activeFilterCount}
-              onClear={() => { setCats([]); setMaxPrice(600); setMinRating(0); }}
+              onClear={() => { setCats([]); setMaxPrice(2000); setMinRating(0); }}
             />
           </aside>
 
@@ -186,10 +207,10 @@ export default function ProductsPage() {
                     <button onClick={() => setCats(p => p.filter(x => x !== c))}><X className="h-3 w-3" /></button>
                   </span>
                 ))}
-                {maxPrice < 600 && (
+                {maxPrice < 2000 && (
                   <span className="flex items-center gap-1 rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700">
                     Under ₹{maxPrice}
-                    <button onClick={() => setMaxPrice(600)}><X className="h-3 w-3" /></button>
+                    <button onClick={() => setMaxPrice(2000)}><X className="h-3 w-3" /></button>
                   </span>
                 )}
                 {minRating > 0 && (
@@ -207,7 +228,7 @@ export default function ProductsPage() {
                 <span className="text-5xl mb-4">🔍</span>
                 <h3 className="text-lg font-semibold text-gray-800">No products found</h3>
                 <p className="mt-1 text-sm text-muted-foreground">Try a different search or clear the filters</p>
-                <button onClick={() => { setSearch(''); setCats([]); setMaxPrice(600); setMinRating(0); }}
+                <button onClick={() => { setSearch(''); setCats([]); setMaxPrice(2000); setMinRating(0); }}
                   className="mt-4 rounded-lg bg-green-600 px-6 py-2 text-sm font-semibold text-white hover:bg-green-700 transition-colors">
                   Clear All Filters
                 </button>
