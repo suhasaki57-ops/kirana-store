@@ -1,92 +1,62 @@
 import mongoose from 'mongoose';
-import fs from 'fs';
-import path from 'path';
 import logger from '../utils/logger';
 
-const MEMDB_URI_FILE = path.join(__dirname, '../../.memdb-uri');
-
-const isPlaceholderURI = (uri: string) =>
-  !uri ||
-  uri === 'USE_MEMORY_DB' ||
-  uri.includes('xxxxx') ||
-  uri.includes('your-') ||
-  uri.includes('<') ||
-  uri.includes('mernuser') ||
-  uri.includes('testuser') ||
-  (!uri.startsWith('mongodb://') && !uri.startsWith('mongodb+srv://'));
-
 const connectDB = async (): Promise<void> => {
-  const configuredURI = process.env.MONGODB_URI || '';
+  const mongoURI = process.env.MONGODB_URI || '';
 
-  // In production, MONGODB_URI must be a real Atlas URI
-  if (process.env.NODE_ENV === 'production') {
-    if (!configuredURI || isPlaceholderURI(configuredURI)) {
-      logger.error('❌ MONGODB_URI is not set for production! Please set a valid MongoDB Atlas URI.');
+  if (!mongoURI || mongoURI === 'USE_MEMORY_DB' || mongoURI.includes('xxxxx')) {
+    if (process.env.NODE_ENV === 'production') {
+      logger.error('MONGODB_URI is not set for production!');
       process.exit(1);
     }
-    await connectMongo(configuredURI);
-    return;
-  }
-
-  // --- Development: allow in-memory MongoDB ---
-  let uri = configuredURI;
-
-  if (isPlaceholderURI(configuredURI)) {
-    // Check if a sibling process already started an in-memory DB
-    if (fs.existsSync(MEMDB_URI_FILE)) {
-      const sharedURI = fs.readFileSync(MEMDB_URI_FILE, 'utf-8').trim();
-      if (sharedURI) {
-        try {
-          logger.info(`🔗 Connecting to shared in-memory MongoDB → ${sharedURI}`);
-          await connectMongo(sharedURI, false);
-          return;
-        } catch {
-          logger.warn('⚠️ Shared in-memory MongoDB unreachable. Creating new instance...');
-          try { fs.unlinkSync(MEMDB_URI_FILE); } catch {}
-        }
-      }
-    }
-
-    // Start our own in-memory MongoDB
-    logger.info('🔶 Starting local in-memory MongoDB...');
+    // Development fallback — try to use mongodb-memory-server if available
     try {
       // eslint-disable-next-line @typescript-eslint/no-var-requires
       const { MongoMemoryServer } = require('mongodb-memory-server') as typeof import('mongodb-memory-server');
       const mongod = await MongoMemoryServer.create({ instance: { dbName: 'ecommerce' } });
-      uri = mongod.getUri('ecommerce');
-      logger.info(`✅ In-memory MongoDB ready → ${uri}`);
-
-      fs.writeFileSync(MEMDB_URI_FILE, uri, 'utf-8');
-
-      process.on('SIGTERM', async () => { try { fs.unlinkSync(MEMDB_URI_FILE); } catch {} await mongod.stop(); });
-      process.on('SIGINT',  async () => { try { fs.unlinkSync(MEMDB_URI_FILE); } catch {} await mongod.stop(); });
-      process.on('exit',    ()       => { try { fs.unlinkSync(MEMDB_URI_FILE); } catch {} });
-      (global as any).__mongod = mongod;
-    } catch (err) {
-      logger.error('❌ Failed to start in-memory MongoDB:', err);
+      const uri = mongod.getUri('ecommerce');
+      logger.info(`Using in-memory MongoDB → ${uri}`);
+      const fs = require('fs');
+      const path = require('path');
+      const uriFile = path.join(__dirname, '../../.memdb-uri');
+      fs.writeFileSync(uriFile, uri, 'utf-8');
+      process.on('exit', () => { try { fs.unlinkSync(uriFile); } catch {} });
+      await mongoose.connect(uri, { serverSelectionTimeoutMS: 15000 });
+    } catch {
+      logger.error('mongodb-memory-server not available. Set MONGODB_URI in .env');
       process.exit(1);
     }
+    return;
   }
 
-  await connectMongo(uri);
-};
-
-async function connectMongo(uri: string, exitOnError = true): Promise<void> {
+  // Check if another process already started an in-memory DB
   try {
-    await mongoose.connect(uri, {
-      serverSelectionTimeoutMS: 5000,
+    const fs = require('fs');
+    const path = require('path');
+    const uriFile = path.join(__dirname, '../../.memdb-uri');
+    if (fs.existsSync(uriFile)) {
+      const sharedURI = fs.readFileSync(uriFile, 'utf-8').trim();
+      if (sharedURI) {
+        logger.info(`Connecting to shared in-memory MongoDB → ${sharedURI}`);
+        await mongoose.connect(sharedURI, { serverSelectionTimeoutMS: 15000 });
+        logger.info(`✅ MongoDB Connected → ${mongoose.connection.host}`);
+        return;
+      }
+    }
+  } catch {}
+
+  try {
+    await mongoose.connect(mongoURI, {
+      serverSelectionTimeoutMS: 15000,
       socketTimeoutMS: 45000,
     });
     logger.info(`✅ MongoDB Connected → ${mongoose.connection.host}`);
-
-    mongoose.connection.on('error',        (e) => logger.error('MongoDB error:', e));
+    mongoose.connection.on('error', (e) => logger.error('MongoDB error:', e));
     mongoose.connection.on('disconnected', () => logger.warn('MongoDB disconnected'));
-    mongoose.connection.on('reconnected',  () => logger.info('MongoDB reconnected'));
   } catch (error) {
-    if (!exitOnError) throw error;
-    logger.error('❌ MongoDB connection failed:', error);
+    logger.error('MongoDB connection failed:', error);
     process.exit(1);
   }
-}
+};
 
 export default connectDB;
