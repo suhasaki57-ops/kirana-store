@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
+import { useState, useEffect } from 'react';
 import { DashboardStats } from '@/components/admin/DashboardStats';
-import { SupabaseCard } from '@/components/admin/SupabaseCard';
 import { SalesChart } from '@/components/admin/SalesChart';
 import { RecentOrders } from '@/components/admin/RecentOrders';
 import { PlusCircle, ShoppingCart, Users, Package } from 'lucide-react';
@@ -17,7 +17,13 @@ const quickActions = [
 
 export default function AdminDashboard() {
   const { user } = useSelector((s: RootState) => s.auth);
-  const today = new Date().toLocaleDateString('en-IN', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+  const [today, setToday] = useState('');
+
+  useEffect(() => {
+    setToday(new Date().toLocaleDateString('en-IN', {
+      weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+    }));
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -38,9 +44,6 @@ export default function AdminDashboard() {
 
       {/* Stats */}
       <DashboardStats />
-
-      {/* Supabase Connection */}
-      <SupabaseCard />
 
       {/* Quick actions */}
       <div>
