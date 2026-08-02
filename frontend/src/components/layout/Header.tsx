@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   ShoppingCart, Heart, User, Search, Menu, X,
   ChevronDown, Package, LogOut, LayoutDashboard,
@@ -27,8 +27,14 @@ export function Header() {
   const [mobileOpen, setMobileOpen]   = useState(false);
   const [dropOpen,   setDropOpen]     = useState(false);
   const [query,      setQuery]        = useState('');
+  const [mounted,    setMounted]      = useState(false);
 
-  const cartCount = items.reduce((n, i) => n + (i as any).quantity, 0);
+  useEffect(() => { setMounted(true); }, []);
+
+  // Only show cart count and auth state after client mount to prevent hydration mismatch
+  const cartCount   = mounted ? items.reduce((n, i) => n + (i as any).quantity, 0) : 0;
+  const isLoggedIn  = mounted ? isAuthenticated : false;
+  const currentUser = mounted ? user : null;
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -108,17 +114,17 @@ export function Header() {
           </Link>
 
           {/* User dropdown */}
-          {isAuthenticated ? (
+          {isLoggedIn ? (
             <div className="relative">
               <button
                 onClick={() => setDropOpen(!dropOpen)}
                 className="flex items-center gap-1 rounded-md px-2 py-1.5 text-sm hover:bg-gray-100"
               >
                 <div className="flex h-7 w-7 items-center justify-center rounded-full bg-green-100 text-xs font-bold text-green-700">
-                  {user?.name?.charAt(0).toUpperCase()}
+                  {currentUser?.name?.charAt(0).toUpperCase()}
                 </div>
                 <span className="hidden max-w-[72px] truncate sm:block text-sm">
-                  {user?.name?.split(' ')[0]}
+                  {currentUser?.name?.split(' ')[0]}
                 </span>
                 <ChevronDown className="h-3.5 w-3.5" />
               </button>
@@ -128,10 +134,10 @@ export function Header() {
                   <div className="fixed inset-0 z-10" onClick={() => setDropOpen(false)} />
                   <div className="absolute right-0 top-full z-20 mt-1 w-52 rounded-lg border bg-white shadow-lg">
                     <div className="border-b px-4 py-2.5">
-                      <p className="text-sm font-semibold">{user?.name}</p>
-                      <p className="truncate text-xs text-muted-foreground">{user?.email}</p>
+                      <p className="text-sm font-semibold">{currentUser?.name}</p>
+                      <p className="truncate text-xs text-muted-foreground">{currentUser?.email}</p>
                     </div>
-                    {user?.role === 'admin' && (
+                    {currentUser?.role === 'admin' && (
                       <Link href="/admin" onClick={() => setDropOpen(false)}
                         className="flex items-center gap-2 px-4 py-2 text-sm hover:bg-green-50">
                         <LayoutDashboard className="h-4 w-4 text-green-600" />
