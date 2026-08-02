@@ -28,6 +28,7 @@ const seedData = async () => {
       name: 'Admin',
       email: process.env.ADMIN_EMAIL || 'admin@kiranastore.com',
       password: process.env.ADMIN_PASSWORD || 'Admin@123456',
+      phone: '+91 98765 43210',
       role: UserRole.ADMIN,
       isEmailVerified: true,
     });
@@ -36,6 +37,7 @@ const seedData = async () => {
       name: 'Ramesh Kumar',
       email: 'user@test.com',
       password: 'User@123456',
+      phone: '+91 87654 32109',
       role: UserRole.USER,
       isEmailVerified: true,
     });
