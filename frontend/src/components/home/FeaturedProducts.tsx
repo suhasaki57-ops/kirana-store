@@ -1,11 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useSelector } from 'react-redux';
-import { RootState } from '@/store';
 import { ProductCard } from '../products/ProductCard';
+import { fetchFeaturedProducts, normalizeProduct, type ApiProduct } from '@/lib/productsApi';
 
-// Static fallback shown on server (no Redux / no localStorage dependency)
 const STATIC_FEATURED = [
   { _id:'fp1', name:'India Gate Basmati Rice 5kg',  slug:'india-gate-basmati-rice-5kg',  price:499, comparePrice:580, images:[{url:'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=400'}], averageRating:4.7, numReviews:540,  stock:200 },
   { _id:'fp2', name:'Amul Pure Ghee 500ml',          slug:'amul-pure-ghee-500ml',          price:295, comparePrice:340, images:[{url:'https://images.unsplash.com/photo-1628088062854-d1870b4553da?w=400'}], averageRating:4.8, numReviews:910,  stock:180 },
@@ -14,44 +12,17 @@ const STATIC_FEATURED = [
 ];
 
 export function FeaturedProducts() {
-  const { products: storeProducts } = useSelector((s: RootState) => s.productsAdmin);
-  const [mounted, setMounted] = useState(false);
+  const [products, setProducts] = useState<any[]>(STATIC_FEATURED);
 
-  useEffect(() => { setMounted(true); }, []);
-
-  // Only compute from Redux / localStorage after client mount
-  const featuredList = (() => {
-    if (!mounted) return STATIC_FEATURED;
-
-    // Try Redux store first, then localStorage fallback
-    let rawList = storeProducts;
-    if (!rawList || rawList.length === 0) {
-      try {
-        const stored = localStorage.getItem('kirana_admin_products');
-        if (stored) rawList = JSON.parse(stored);
-      } catch {}
-    }
-
-    // If still empty, use static list
-    if (!rawList || rawList.length === 0) return STATIC_FEATURED;
-
-    const mapped = rawList
-      .filter((p: any) => p.status !== 'inactive')
-      .map((p: any) => ({
-        _id: String(p.id || p._id),
-        name: p.name,
-        slug: p.slug || p.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
-        price: p.price,
-        comparePrice: p.mrp || p.comparePrice || Math.round(p.price * 1.15),
-        images: p.images?.length ? p.images : [{ url: p.image || 'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=400' }],
-        averageRating: p.averageRating || 4.5,
-        numReviews: p.numReviews || 100,
-        stock: p.stock ?? 50,
-      }));
-
-    const featured = mapped.filter((p: any) => (storeProducts as any[]).find((sp: any) => String(sp.id || sp._id) === p._id)?.featured);
-    return (featured.length > 0 ? featured : mapped).slice(0, 8);
-  })();
+  useEffect(() => {
+    // Fetch from backend API — works on ALL devices (mobile, desktop, etc.)
+    fetchFeaturedProducts().then((apiProducts: ApiProduct[]) => {
+      if (apiProducts.length > 0) {
+        setProducts(apiProducts.map(normalizeProduct).slice(0, 8));
+      }
+      // If API returns nothing, keep STATIC_FEATURED as fallback
+    });
+  }, []);
 
   return (
     <section className="container section-padding">
@@ -62,7 +33,7 @@ export function FeaturedProducts() {
         </p>
       </div>
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-        {featuredList.map((product: any) => (
+        {products.map((product) => (
           <ProductCard key={product._id} product={product} />
         ))}
       </div>

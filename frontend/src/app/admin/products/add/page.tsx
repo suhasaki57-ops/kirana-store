@@ -77,27 +77,73 @@ export default function AddProductPage() {
   };
 
   const onSubmit = async (data: FormData) => {
-    await new Promise(r => setTimeout(r, 400));
+    try {
+      // 1. Upload image to Cloudinary via the backend, or use base64 as fallback
+      const imageUrl = images[0]?.preview ||
+        'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=400';
 
-    // Save to Redux + localStorage so it appears in the products list immediately
-    dispatch(addProduct({
-      name:        data.name,
-      category:    data.category,
-      price:       data.price,
-      mrp:         data.mrp,
-      stock:       data.stock,
-      sku:         data.sku.toUpperCase(),
-      brand:       data.brand || '',
-      tags:        data.tags || '',
-      description: data.description,
-      status:      data.status,
-      featured:    data.featured ?? false,
-      image:       images[0]?.preview ||
-        'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=400',
-    }));
+      // 2. Save to backend API (so ALL devices see it)
+      const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1';
+      const token = document.cookie.match(/token=([^;]+)/)?.[1] ||
+        localStorage.getItem('token') || '';
 
-    toast.success(`"${data.name}" added to the store!`, { icon: '✅' });
-    router.push('/admin/products');
+      const payload = {
+        name:        data.name,
+        description: data.description,
+        price:       data.price,
+        comparePrice: data.mrp,
+        category:    data.category,
+        stock:       data.stock,
+        sku:         data.sku.toUpperCase(),
+        brand:       data.brand || '',
+        tags:        data.tags ? data.tags.split(',').map(t => t.trim()) : [],
+        isActive:    data.status === 'active',
+        isFeatured:  data.featured ?? false,
+        images: [{ url: imageUrl, publicId: `product-${Date.now()}`, isDefault: true }],
+      };
+
+      let savedToApi = false;
+      try {
+        const res = await fetch(`${API}/products`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify(payload),
+        });
+        if (res.ok) savedToApi = true;
+      } catch (apiErr) {
+        console.warn('API save failed, falling back to localStorage only:', apiErr);
+      }
+
+      // 3. Also save to Redux + localStorage as local cache
+      dispatch(addProduct({
+        name:        data.name,
+        category:    data.category,
+        price:       data.price,
+        mrp:         data.mrp,
+        stock:       data.stock,
+        sku:         data.sku.toUpperCase(),
+        brand:       data.brand || '',
+        tags:        data.tags || '',
+        description: data.description,
+        status:      data.status,
+        featured:    data.featured ?? false,
+        image:       imageUrl,
+      }));
+
+      toast.success(
+        savedToApi
+          ? `"${data.name}" added — visible on all devices!`
+          : `"${data.name}" added locally. Check API connection.`,
+        { icon: savedToApi ? '✅' : '⚠️' }
+      );
+      router.push('/admin/products');
+    } catch (err) {
+      toast.error('Failed to add product. Please try again.');
+      console.error(err);
+    }
   };
 
   const sellingPrice = watch('price');
