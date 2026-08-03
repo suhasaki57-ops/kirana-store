@@ -38,39 +38,63 @@ const DEFAULT_SEED: ApiProduct[] = [
   { _id:'8', name:'Tata Chai Premium Tea 500g',        category:'Snacks & Beverages', price:235, comparePrice:270, stock:280, sku:'TEA-001',  brand:'Tata Tea',    tags:['tea','chai'],      description:'Assam premium tea leaves.',     isActive:true, isFeatured:true,  slug:'tata-chai-premium-tea-500g',        images:[{url:'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400', publicId:'8', isDefault:true}], averageRating:4.7, numReviews:720 },
 ];
 
+const getDeletedIds = (): Set<string> => {
+  if (typeof window === 'undefined') return new Set();
+  try {
+    const s = localStorage.getItem('kirana_admin_deleted_ids');
+    if (!s) return new Set();
+    const arr = JSON.parse(s);
+    return new Set(Array.isArray(arr) ? arr.map(x => String(x).toLowerCase()) : []);
+  } catch {
+    return new Set();
+  }
+};
+
 const getLocalAdminProducts = (): ApiProduct[] => {
-  if (typeof window === 'undefined') return DEFAULT_SEED;
+  const deletedIds = getDeletedIds();
+  if (typeof window === 'undefined') {
+    return DEFAULT_SEED.filter(p => !deletedIds.has(String(p._id).toLowerCase()));
+  }
   try {
     const stored = localStorage.getItem('kirana_admin_products');
     let list: any[] = [];
-    if (stored) {
+    if (stored !== null) {
       list = JSON.parse(stored);
     } else {
       list = DEFAULT_SEED;
     }
-    if (!Array.isArray(list) || list.length === 0) return DEFAULT_SEED;
-    return list.map((lp: any) => ({
-      _id: String(lp.id || lp._id || `local-${Date.now()}`),
-      name: lp.name || 'Product',
-      slug: lp.slug || (lp.name ? lp.name.toLowerCase().replace(/[^a-z0-9]+/g, '-') : ''),
-      description: lp.description || '',
-      price: Number(lp.price || 0),
-      comparePrice: Number(lp.mrp || lp.comparePrice || 0),
-      category: lp.category || 'Grocery',
-      images: Array.isArray(lp.images) && lp.images.length > 0
-        ? lp.images
-        : [{ url: lp.image || 'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=400', publicId: 'local', isDefault: true }],
-      stock: Number(lp.stock ?? 50),
-      sku: lp.sku || '',
-      brand: lp.brand || '',
-      tags: Array.isArray(lp.tags) ? lp.tags : (typeof lp.tags === 'string' ? lp.tags.split(',') : []),
-      isActive: lp.status ? lp.status === 'active' : true,
-      isFeatured: lp.featured ?? false,
-      averageRating: 4.5,
-      numReviews: 10,
-    }));
+    if (!Array.isArray(list)) list = [];
+
+    return list
+      .filter((lp: any) => {
+        const id = String(lp.id || lp._id || '').toLowerCase();
+        const name = String(lp.name || '').toLowerCase();
+        if (deletedIds.has(id)) return false;
+        if (deletedIds.has(name)) return false;
+        return true;
+      })
+      .map((lp: any) => ({
+        _id: String(lp.id || lp._id || `local-${Date.now()}`),
+        name: lp.name || 'Product',
+        slug: lp.slug || (lp.name ? lp.name.toLowerCase().replace(/[^a-z0-9]+/g, '-') : ''),
+        description: lp.description || '',
+        price: Number(lp.price || 0),
+        comparePrice: Number(lp.mrp || lp.comparePrice || 0),
+        category: lp.category || 'Grocery',
+        images: Array.isArray(lp.images) && lp.images.length > 0
+          ? lp.images
+          : [{ url: lp.image || 'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=400', publicId: 'local', isDefault: true }],
+        stock: Number(lp.stock ?? 50),
+        sku: lp.sku || '',
+        brand: lp.brand || '',
+        tags: Array.isArray(lp.tags) ? lp.tags : (typeof lp.tags === 'string' ? lp.tags.split(',') : []),
+        isActive: lp.status ? lp.status === 'active' : true,
+        isFeatured: lp.featured ?? false,
+        averageRating: 4.5,
+        numReviews: 10,
+      }));
   } catch {
-    return DEFAULT_SEED;
+    return DEFAULT_SEED.filter(p => !deletedIds.has(String(p._id).toLowerCase()));
   }
 };
 
@@ -100,6 +124,15 @@ export async function fetchProducts(params?: {
   } catch {
     apiProducts = [];
   }
+
+  const deletedIds = getDeletedIds();
+
+  // Filter API products against deletedIds
+  apiProducts = apiProducts.filter(p => {
+    const id = String(p._id).toLowerCase();
+    const name = String(p.name || '').toLowerCase();
+    return !deletedIds.has(id) && !deletedIds.has(name);
+  });
 
   // Merge locally added admin products
   const localProducts = getLocalAdminProducts();
