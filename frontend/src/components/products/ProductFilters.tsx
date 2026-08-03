@@ -139,8 +139,8 @@ export function ProductFilters({
                 <input
                   type="range"
                   min={30}
-                  max={600}
-                  step={10}
+                  max={5000}
+                  step={50}
                   value={maxPrice}
                   onChange={(e) => setMaxPrice(Number(e.target.value))}
                   className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-green-600 focus:outline-none"
@@ -155,13 +155,13 @@ export function ProductFilters({
 
               {/* Quick price chips */}
               <div className="flex gap-1.5 flex-wrap">
-                {[100, 200, 300, 500].map((p) => {
+                {[200, 500, 1000, 2000, 5000].map((p) => {
                   const active = maxPrice === p;
                   return (
                     <button
                       key={p}
                       type="button"
-                      onClick={() => setMaxPrice(active ? 600 : p)}
+                      onClick={() => setMaxPrice(active ? 5000 : p)}
                       className={`rounded-full px-3 py-1 text-xs font-semibold border transition-all duration-150 active:scale-95 ${
                         active
                           ? 'bg-green-600 text-white border-green-600 shadow-xs'

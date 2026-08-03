@@ -20,7 +20,7 @@ export default function ProductsPage() {
   const [debouncedSearch, setDebounced] = useState(urlSearch);
   const [sortBy, setSortBy]             = useState('featured');
   const [cats, setCats]                 = useState<string[]>(urlCategory ? [urlCategory] : []);
-  const [maxPrice, setMaxPrice]         = useState(2000);
+  const [maxPrice, setMaxPrice]         = useState(5000);
   const [minRating, setMinRating]       = useState(0);
   const [showFilter, setShowFilter]     = useState(false);
   const [mounted, setMounted]           = useState(false);
@@ -77,7 +77,7 @@ export default function ProductsPage() {
     return list;
   }, [allProducts, debouncedSearch, cats, maxPrice, minRating, sortBy]);
 
-  const activeFilterCount = cats.length + (maxPrice < 2000 ? 1 : 0) + (minRating > 0 ? 1 : 0);
+  const activeFilterCount = cats.length + (maxPrice < 5000 ? 1 : 0) + (minRating > 0 ? 1 : 0);
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
@@ -121,7 +121,7 @@ export default function ProductsPage() {
               maxPrice={maxPrice} setMaxPrice={setMaxPrice}
               minRating={minRating} setMinRating={setMinRating}
               activeCount={activeFilterCount}
-              onClear={() => { setCats([]); setMaxPrice(2000); setMinRating(0); }}
+              onClear={() => { setCats([]); setMaxPrice(5000); setMinRating(0); }}
             />
           </aside>
 
@@ -161,9 +161,9 @@ export default function ProductsPage() {
                     {c}<button onClick={() => setCats(p => p.filter(x => x !== c))}><X className="h-3 w-3" /></button>
                   </span>
                 ))}
-                {maxPrice < 2000 && (
+                {maxPrice < 5000 && (
                   <span className="flex items-center gap-1 rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700">
-                    Under ₹{maxPrice}<button onClick={() => setMaxPrice(2000)}><X className="h-3 w-3" /></button>
+                    Under ₹{maxPrice}<button onClick={() => setMaxPrice(5000)}><X className="h-3 w-3" /></button>
                   </span>
                 )}
                 {minRating > 0 && (
@@ -193,7 +193,7 @@ export default function ProductsPage() {
                 <span className="text-5xl mb-4">🔍</span>
                 <h3 className="text-lg font-semibold text-gray-800">No products found</h3>
                 <p className="mt-1 text-sm text-muted-foreground">Try a different search or clear the filters</p>
-                <button onClick={() => { setSearch(''); setCats([]); setMaxPrice(2000); setMinRating(0); }}
+                <button onClick={() => { setSearch(''); setCats([]); setMaxPrice(5000); setMinRating(0); }}
                   className="mt-4 rounded-lg bg-green-600 px-6 py-2 text-sm font-semibold text-white hover:bg-green-700">
                   Clear All Filters
                 </button>
