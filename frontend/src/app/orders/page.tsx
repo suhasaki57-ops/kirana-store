@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import Link from 'next/link';
 import { Header } from '@/components/layout/Header';
@@ -21,8 +21,14 @@ const STATUS_CONFIG: Record<OrderStatus, { label: string; className: string; ico
 };
 
 export default function OrdersPage() {
-  const orders           = useSelector((s: RootState) => s.orders.orders);
+  const allOrders            = useSelector((s: RootState) => s.orders.orders);
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [mounted, setMounted]   = useState(false);
+
+  useEffect(() => { setMounted(true); }, []);
+
+  // Only use Redux data after client mount to prevent hydration mismatch
+  const orders = mounted ? allOrders : [];
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">

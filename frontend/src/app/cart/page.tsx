@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useSelector, useDispatch } from 'react-redux';
@@ -20,11 +20,17 @@ const COUPONS: Record<string, { type: 'pct' | 'flat'; value: number; min: number
 
 export default function CartPage() {
   const dispatch = useDispatch();
-  const { items } = useSelector((state: RootState) => state.cart);
+  const { items: allItems } = useSelector((state: RootState) => state.cart);
 
-  const [coupon, setCoupon] = useState('');
-  const [applied, setApplied] = useState<{ code: string; disc: number } | null>(null);
-  const [err, setErr] = useState('');
+  const [mounted, setMounted]   = useState(false);
+  const [coupon, setCoupon]     = useState('');
+  const [applied, setApplied]   = useState<{ code: string; disc: number } | null>(null);
+  const [err, setErr]           = useState('');
+
+  useEffect(() => { setMounted(true); }, []);
+
+  // Only use Redux cart data after client mount to prevent hydration mismatch
+  const items = mounted ? allItems : [];
 
   const handleUpdateQty = (id: string, currentQty: number, delta: number) => {
     const newQty = currentQty + delta;
