@@ -34,8 +34,11 @@ const productsAdminSlice = createSlice({
   name: 'productsAdmin',
   initialState: { products: loadProducts() },
   reducers: {
-    addProduct: (state, action: PayloadAction<Omit<AdminProduct, 'id'>>) => {
-      const p: AdminProduct = { ...action.payload, id: Date.now().toString() };
+    addProduct: (state, action: PayloadAction<Omit<AdminProduct, 'id'> & { id?: string }>) => {
+      const id = action.payload.id || Date.now().toString();
+      const p: AdminProduct = { ...action.payload, id };
+      // Remove duplicate if exists
+      state.products = state.products.filter(item => item.id !== id);
       state.products.unshift(p);
       save(state.products);
     },
@@ -48,11 +51,7 @@ const productsAdminSlice = createSlice({
       state.products = state.products.filter(p => {
         const pid = String(p.id || '').toLowerCase();
         const p_id = String((p as any)._id || '').toLowerCase();
-        const pname = String(p.name || '').toLowerCase();
-        if (pid === target || p_id === target) return false;
-        if (target && pname === target) return false;
-        if (target.includes('onion') && pname.includes('onion')) return false;
-        return true;
+        return pid !== target && p_id !== target;
       });
       save(state.products);
     },

@@ -78,16 +78,16 @@ export default function AddProductPage() {
 
   const onSubmit = async (data: FormData) => {
     try {
-      // 1. Upload image to Cloudinary via the backend, or use base64 as fallback
+      const newId = `prod-${Date.now()}`;
       const imageUrl = images[0]?.preview ||
         'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=400';
 
-      // 2. Save to backend API (so ALL devices see it)
       const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1';
       const token = document.cookie.match(/token=([^;]+)/)?.[1] ||
         localStorage.getItem('token') || '';
 
       const payload = {
+        _id:         newId,
         name:        data.name,
         description: data.description,
         price:       data.price,
@@ -102,9 +102,8 @@ export default function AddProductPage() {
         images: [{ url: imageUrl, publicId: `product-${Date.now()}`, isDefault: true }],
       };
 
-      let savedToApi = false;
       try {
-        const res = await fetch(`${API}/products`, {
+        await fetch(`${API}/products`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -112,13 +111,13 @@ export default function AddProductPage() {
           },
           body: JSON.stringify(payload),
         });
-        if (res.ok) savedToApi = true;
       } catch (apiErr) {
         console.warn('API save failed, falling back to localStorage only:', apiErr);
       }
 
-      // 3. Also save to Redux + localStorage as local cache
-      dispatch(addProduct({
+      const newProductItem = {
+        id:          newId,
+        _id:         newId,
         name:        data.name,
         category:    data.category,
         price:       data.price,
@@ -131,7 +130,22 @@ export default function AddProductPage() {
         status:      data.status,
         featured:    data.featured ?? false,
         image:       imageUrl,
-      }));
+        images:      [{ url: imageUrl, publicId: `product-${Date.now()}`, isDefault: true }],
+      };
+
+      // Direct write to localStorage for immediate cross-tab consistency
+      if (typeof window !== 'undefined') {
+        try {
+          const stored = localStorage.getItem('kirana_admin_products');
+          let list = stored ? JSON.parse(stored) : [];
+          if (!Array.isArray(list)) list = [];
+          list.unshift(newProductItem);
+          localStorage.setItem('kirana_admin_products', JSON.stringify(list));
+        } catch {}
+      }
+
+      // Save to Redux store
+      dispatch(addProduct(newProductItem as any));
 
       toast.success(`"${data.name}" added successfully to store!`, { icon: '✅' });
       router.push('/admin/products');

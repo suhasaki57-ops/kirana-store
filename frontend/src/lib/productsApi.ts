@@ -44,7 +44,10 @@ const getDeletedIds = (): Set<string> => {
     const s = localStorage.getItem('kirana_admin_deleted_ids');
     if (!s) return new Set();
     const arr = JSON.parse(s);
-    return new Set(Array.isArray(arr) ? arr.map(x => String(x).toLowerCase()) : []);
+    if (!Array.isArray(arr)) return new Set();
+    // Filter out legacy entries containing spaces (product names) to prevent hiding new products
+    const validIds = arr.filter(x => typeof x === 'string' && !x.includes(' '));
+    return new Set(validIds.map(x => String(x).toLowerCase()));
   } catch {
     return new Set();
   }
@@ -52,50 +55,56 @@ const getDeletedIds = (): Set<string> => {
 
 const getLocalAdminProducts = (): ApiProduct[] => {
   const deletedIds = getDeletedIds();
-  if (typeof window === 'undefined') {
-    return DEFAULT_SEED.filter(p => !deletedIds.has(String(p._id).toLowerCase()));
+  let list: any[] = [];
+  if (typeof window !== 'undefined') {
+    try {
+      const stored = localStorage.getItem('kirana_admin_products');
+      if (stored !== null) {
+        list = JSON.parse(stored);
+      }
+    } catch {}
   }
-  try {
-    const stored = localStorage.getItem('kirana_admin_products');
-    let list: any[] = [];
-    if (stored !== null) {
-      list = JSON.parse(stored);
-    } else {
-      list = DEFAULT_SEED;
-    }
-    if (!Array.isArray(list)) list = [];
 
-    return list
-      .filter((lp: any) => {
-        const id = String(lp.id || lp._id || '').toLowerCase();
-        const name = String(lp.name || '').toLowerCase();
-        if (deletedIds.has(id)) return false;
-        if (deletedIds.has(name)) return false;
-        return true;
-      })
-      .map((lp: any) => ({
-        _id: String(lp.id || lp._id || `local-${Date.now()}`),
-        name: lp.name || 'Product',
-        slug: lp.slug || (lp.name ? lp.name.toLowerCase().replace(/[^a-z0-9]+/g, '-') : ''),
-        description: lp.description || '',
-        price: Number(lp.price || 0),
-        comparePrice: Number(lp.mrp || lp.comparePrice || 0),
-        category: lp.category || 'Grocery',
-        images: Array.isArray(lp.images) && lp.images.length > 0
-          ? lp.images
-          : [{ url: lp.image || 'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=400', publicId: 'local', isDefault: true }],
-        stock: Number(lp.stock ?? 50),
-        sku: lp.sku || '',
-        brand: lp.brand || '',
-        tags: Array.isArray(lp.tags) ? lp.tags : (typeof lp.tags === 'string' ? lp.tags.split(',') : []),
-        isActive: lp.status ? lp.status === 'active' : true,
-        isFeatured: lp.featured ?? false,
-        averageRating: 4.5,
-        numReviews: 10,
-      }));
-  } catch {
-    return DEFAULT_SEED.filter(p => !deletedIds.has(String(p._id).toLowerCase()));
+  if (!Array.isArray(list)) list = [];
+
+  // Merge seed items if list is empty or missing seed items (unless explicitly deleted by ID)
+  const existingIds = new Set(list.map((lp: any) => String(lp.id || lp._id || '').toLowerCase()));
+  for (const seed of DEFAULT_SEED) {
+    const seedId = String(seed._id).toLowerCase();
+    if (!existingIds.has(seedId) && !deletedIds.has(seedId)) {
+      list.push(seed);
+    }
   }
+
+  return list
+    .filter((lp: any) => {
+      if (!lp) return false;
+      const id = String(lp.id || lp._id || '').toLowerCase();
+      if (deletedIds.has(id)) return false;
+      // Keep item active unless explicitly set to inactive
+      const isActive = lp.status ? lp.status === 'active' : (lp.isActive !== undefined ? lp.isActive : true);
+      return isActive;
+    })
+    .map((lp: any) => ({
+      _id: String(lp.id || lp._id || `local-${Date.now()}`),
+      name: lp.name || 'Product',
+      slug: lp.slug || (lp.name ? lp.name.toLowerCase().replace(/[^a-z0-9]+/g, '-') : ''),
+      description: lp.description || '',
+      price: Number(lp.price || 0),
+      comparePrice: Number(lp.mrp || lp.comparePrice || 0),
+      category: typeof lp.category === 'object' ? lp.category?.name || 'Grocery' : (lp.category || 'Grocery'),
+      images: Array.isArray(lp.images) && lp.images.length > 0
+        ? lp.images
+        : [{ url: lp.image || 'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=400', publicId: 'local', isDefault: true }],
+      stock: Number(lp.stock ?? 50),
+      sku: lp.sku || '',
+      brand: lp.brand || '',
+      tags: Array.isArray(lp.tags) ? lp.tags : (typeof lp.tags === 'string' ? lp.tags.split(',') : []),
+      isActive: lp.status ? lp.status === 'active' : (lp.isActive !== undefined ? lp.isActive : true),
+      isFeatured: lp.featured ?? lp.isFeatured ?? false,
+      averageRating: lp.averageRating ?? 4.5,
+      numReviews: lp.numReviews ?? 10,
+    }));
 };
 
 /** Fetch all active products — used on customer pages */
@@ -127,11 +136,10 @@ export async function fetchProducts(params?: {
 
   const deletedIds = getDeletedIds();
 
-  // Filter API products against deletedIds
+  // Filter API products strictly against deletedIds (by ID only)
   apiProducts = apiProducts.filter(p => {
     const id = String(p._id).toLowerCase();
-    const name = String(p.name || '').toLowerCase();
-    return !deletedIds.has(id) && !deletedIds.has(name);
+    return !deletedIds.has(id);
   });
 
   // Merge locally added admin products

@@ -64,8 +64,6 @@ export default function AdminProductsPage() {
 
   const confirmDelete = async (id: string) => {
     setDelLoading(true);
-    const targetProd = allProducts.find(p => String(p._id) === String(id) || String((p as any).id) === String(id));
-    const targetName = (targetProd?.name || '').toLowerCase();
     const targetIdStr = String(id).toLowerCase();
 
     try {
@@ -73,14 +71,15 @@ export default function AdminProductsPage() {
       await api.delete(`/products/${id}`).catch(() => {});
       await fetch(`${API}/products/${id}`, { method: 'DELETE' }).catch(() => {});
 
-      // 2. Track deleted ID & name in localStorage
+      // 2. Track deleted ID in localStorage (strictly by ID, NOT by name!)
       if (typeof window !== 'undefined') {
         try {
           const s = localStorage.getItem('kirana_admin_deleted_ids');
           const deletedArr: string[] = s ? JSON.parse(s) : [];
           if (!deletedArr.includes(targetIdStr)) deletedArr.push(targetIdStr);
-          if (targetName && !deletedArr.includes(targetName)) deletedArr.push(targetName);
-          localStorage.setItem('kirana_admin_deleted_ids', JSON.stringify(deletedArr));
+          // Keep only valid IDs (no spaces)
+          const cleaned = deletedArr.filter(x => typeof x === 'string' && !x.includes(' '));
+          localStorage.setItem('kirana_admin_deleted_ids', JSON.stringify(cleaned));
 
           // Remove from kirana_admin_products array in localStorage
           const storedProds = localStorage.getItem('kirana_admin_products');
@@ -88,10 +87,7 @@ export default function AdminProductsPage() {
             const list = JSON.parse(storedProds);
             const filteredList = list.filter((p: any) => {
               const pid = String(p.id || p._id || '').toLowerCase();
-              const pname = String(p.name || '').toLowerCase();
-              if (pid === targetIdStr) return false;
-              if (targetName && pname === targetName) return false;
-              return true;
+              return pid !== targetIdStr;
             });
             localStorage.setItem('kirana_admin_products', JSON.stringify(filteredList));
           }
@@ -101,7 +97,7 @@ export default function AdminProductsPage() {
       // 3. Remove from Redux state
       dispatch(deleteProduct(id));
 
-      setApiProducts(p => p.filter(prod => String(prod._id).toLowerCase() !== targetIdStr && String(prod.name || '').toLowerCase() !== targetName));
+      setApiProducts(p => p.filter(prod => String(prod._id).toLowerCase() !== targetIdStr));
       toast.success('Product deleted successfully');
     } catch {
       dispatch(deleteProduct(id));
