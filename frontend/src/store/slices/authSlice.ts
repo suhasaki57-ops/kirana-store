@@ -1,4 +1,5 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { strict } from 'assert';
 import Cookies from 'js-cookie';
 
 interface User {
@@ -7,11 +8,13 @@ interface User {
   email: string;
   role: string;
   avatar?: string;
+  phone?: string;
 }
 
 interface AuthState {
   user: User | null;
   token: string | null;
+  refreshToken: string | null;
   isAuthenticated: boolean;
   loading: boolean;
 }
@@ -21,6 +24,7 @@ interface AuthState {
 const initialState: AuthState = {
   user: null,
   token: null,
+  refreshToken: null,
   isAuthenticated: false,
   loading: false,
 };
@@ -31,14 +35,18 @@ const authSlice = createSlice({
   reducers: {
     setCredentials: (
       state,
-      action: PayloadAction<{ user: User; token: string; refreshToken: string }>
+      action: PayloadAction<{ user: User; token: string | null; refreshToken: string | null }>
     ) => {
-      state.user            = action.payload.user;
-      state.token           = action.payload.token;
+      state.user = action.payload.user;
+      state.token = action.payload.token;
       state.isAuthenticated = true;
       if (typeof window !== 'undefined') {
-        Cookies.set('token',        action.payload.token,        { expires: 1 / 96 }); // 15 min
-        Cookies.set('refreshToken', action.payload.refreshToken, { expires: 7 });
+        if (action.payload.token) {
+          Cookies.set('token', action.payload.token, { expires: 1 / 96 }); // 15 min
+        }
+        if (action.payload.refreshToken) {
+          Cookies.set('refreshToken', action.payload.refreshToken, { expires: 7 });
+        }
       }
     },
     setUser: (state, action: PayloadAction<User>) => {
@@ -48,12 +56,15 @@ const authSlice = createSlice({
     rehydrateAuth: (state) => {
       if (typeof window === 'undefined') return;
       const token = Cookies.get('token') || null;
-      state.token           = token;
+      const refreshToken = Cookies.get('refreshToken') || null;
+
+      state.token = token;
+      state.refreshToken = refreshToken;
       state.isAuthenticated = !!token;
     },
     logout: (state) => {
-      state.user            = null;
-      state.token           = null;
+      state.user = null;
+      state.token = null;
       state.isAuthenticated = false;
       if (typeof window !== 'undefined') {
         Cookies.remove('token');
