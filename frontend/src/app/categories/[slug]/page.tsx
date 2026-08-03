@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { ProductCard } from '@/components/products/ProductCard';
 import { Search, ArrowLeft, SlidersHorizontal } from 'lucide-react';
+import { fetchProducts, normalizeProduct, type ApiProduct } from '@/lib/productsApi';
 
 const CATEGORY_MAP: Record<string, { name: string; emoji: string; description: string; bg: string; border: string; text: string }> = {
   'grains-pulses': {
@@ -59,30 +60,21 @@ const CATEGORY_MAP: Record<string, { name: string; emoji: string; description: s
   },
 };
 
-const ALL_PRODUCTS = [
-  { _id:'1',  name:'India Gate Basmati Rice 5kg',      slug:'india-gate-basmati-rice-5kg',      price:499, comparePrice:580, category:'Grains & Pulses',    images:[{url:'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=400'}], averageRating:4.7, numReviews:540,  stock:200 },
-  { _id:'2',  name:'Aashirvaad Whole Wheat Atta 10kg', slug:'aashirvaad-whole-wheat-atta-10kg', price:380, comparePrice:420, category:'Grains & Pulses',    images:[{url:'https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?w=400'}], averageRating:4.6, numReviews:820,  stock:150 },
-  { _id:'3',  name:'Toor Dal (Arhar) 1kg',             slug:'toor-dal-arhar-1kg',               price:145, comparePrice:165, category:'Grains & Pulses',    images:[{url:'https://images.unsplash.com/photo-1585032226651-759b368d7246?w=400'}], averageRating:4.4, numReviews:310,  stock:300 },
-  { _id:'4',  name:'Sugar (Chini) 1kg - Refined',      slug:'sugar-chini-1kg-refined',          price:52,  comparePrice:60,  category:'Grains & Pulses',    images:[{url:'https://images.unsplash.com/photo-1559561853-08451507cbe7?w=400'}], averageRating:4.3, numReviews:215,  stock:500 },
-  { _id:'5',  name:'Tata Salt Iodised 1kg',            slug:'tata-salt-iodised-1kg',            price:28,  comparePrice:32,  category:'Grains & Pulses',    images:[{url:'https://images.unsplash.com/photo-1563636619-e9143da7973b?w=400'}], averageRating:4.8, numReviews:1020, stock:800 },
-  { _id:'6',  name:'MDH Chana Masala 100g',            slug:'mdh-chana-masala-100g',            price:55,  comparePrice:65,  category:'Spices & Masala',    images:[{url:'https://images.unsplash.com/photo-1596040033229-a9821ebd058d?w=400'}], averageRating:4.6, numReviews:680,  stock:400 },
-  { _id:'7',  name:'Everest Turmeric Powder 200g',     slug:'everest-turmeric-haldi-powder-200g',price:48, comparePrice:58,  category:'Spices & Masala',    images:[{url:'https://images.unsplash.com/photo-1615485500704-8e990f9900f7?w=400'}], averageRating:4.5, numReviews:445,  stock:350 },
-  { _id:'8',  name:'Fortune Sunflower Oil 1 Litre',    slug:'fortune-sunflower-oil-1-litre',    price:142, comparePrice:168, category:'Oils & Ghee',        images:[{url:'https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?w=400'}], averageRating:4.4, numReviews:320,  stock:250 },
-  { _id:'9',  name:'Amul Pure Ghee 500ml',             slug:'amul-pure-ghee-500ml',             price:295, comparePrice:340, category:'Oils & Ghee',        images:[{url:'https://images.unsplash.com/photo-1628088062854-d1870b4553da?w=400'}], averageRating:4.8, numReviews:910,  stock:180 },
-  { _id:'10', name:'Surf Excel Easy Wash 1kg',         slug:'surf-excel-easy-wash-detergent-1kg',price:138,comparePrice:160, category:'Cleaning & Home',    images:[{url:'https://images.unsplash.com/photo-1582735689369-4fe89db7114c?w=400'}], averageRating:4.6, numReviews:750,  stock:300 },
-  { _id:'11', name:'Vim Dishwash Bar (Pack of 3)',     slug:'vim-dishwash-bar-200g-pack-of-3',  price:75,  comparePrice:90,  category:'Cleaning & Home',    images:[{url:'https://images.unsplash.com/photo-1585771724684-38269d6639fd?w=400'}], averageRating:4.4, numReviews:560,  stock:400 },
-  { _id:'12', name:'Phenyl Floor Cleaner 1L',          slug:'phenyl-floor-cleaner-1-litre',     price:89,  comparePrice:110, category:'Cleaning & Home',    images:[{url:'https://images.unsplash.com/photo-1563453392212-326f5e854473?w=400'}], averageRating:4.3, numReviews:290,  stock:200 },
-  { _id:'13', name:'Lifebuoy Total Soap (Pack of 4)',  slug:'lifebuoy-total-soap-100g-pack-of-4',price:96, comparePrice:112, category:'Personal Care',      images:[{url:'https://images.unsplash.com/photo-1556228578-0d85b1a4d571?w=400'}], averageRating:4.5, numReviews:880,  stock:500 },
-  { _id:'14', name:'Colgate Strong Teeth 200g',        slug:'colgate-strong-teeth-toothpaste-200g',price:118,comparePrice:135,category:'Personal Care',     images:[{url:'https://images.unsplash.com/photo-1607613009820-a29f7bb81c04?w=400'}], averageRating:4.6, numReviews:1100, stock:350 },
-  { _id:'15', name:'Tata Chai Premium Tea 500g',       slug:'tata-chai-premium-tea-500g',       price:235, comparePrice:270, category:'Snacks & Beverages', images:[{url:'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400'}], averageRating:4.7, numReviews:720,  stock:280 },
-  { _id:'16', name:'Parle-G Glucose Biscuits 1kg',     slug:'parle-g-original-glucose-biscuits-1kg',price:85,comparePrice:100,category:'Snacks & Beverages',images:[{url:'https://images.unsplash.com/photo-1558961363-fa8fdf82db35?w=400'}], averageRating:4.8, numReviews:1540, stock:600 },
-];
-
 export default function CategoryDetailPage() {
   const routeParams = useParams();
   const slug = typeof routeParams?.slug === 'string' ? routeParams.slug : Array.isArray(routeParams?.slug) ? routeParams.slug[0] : '';
+  const [apiProducts, setApiProducts] = useState<ApiProduct[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState('featured');
+
+  useEffect(() => {
+    setLoading(true);
+    fetchProducts({ limit: 200 }).then(({ products }) => {
+      setApiProducts(products);
+      setLoading(false);
+    }).catch(() => setLoading(false));
+  }, []);
 
   const catInfo = (slug && CATEGORY_MAP[slug]) || {
     name: slug ? slug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) : 'Category',
@@ -93,8 +85,10 @@ export default function CategoryDetailPage() {
     text: 'text-green-800',
   };
 
+  const normalized = useMemo(() => apiProducts.map(normalizeProduct), [apiProducts]);
+
   const products = useMemo(() => {
-    let list = ALL_PRODUCTS.filter(p => p.category.toLowerCase() === catInfo.name.toLowerCase());
+    let list = normalized.filter(p => String(p.category).toLowerCase().includes(catInfo.name.toLowerCase()) || catInfo.name.toLowerCase().includes(String(p.category).toLowerCase()));
     if (search) {
       list = list.filter(p => p.name.toLowerCase().includes(search.toLowerCase()));
     }
@@ -102,7 +96,7 @@ export default function CategoryDetailPage() {
     if (sortBy === 'price-desc') list.sort((a, b) => b.price - a.price);
     if (sortBy === 'rating')     list.sort((a, b) => b.averageRating - a.averageRating);
     return list;
-  }, [catInfo.name, search, sortBy]);
+  }, [normalized, catInfo.name, search, sortBy]);
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
@@ -171,7 +165,13 @@ export default function CategoryDetailPage() {
           </div>
 
           {/* Product Grid */}
-          {products.length === 0 ? (
+          {loading ? (
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="h-64 rounded-xl bg-gray-200 animate-pulse" />
+              ))}
+            </div>
+          ) : products.length === 0 ? (
             <div className="flex flex-col items-center justify-center rounded-2xl border bg-white py-16 text-center shadow-sm">
               <span className="text-5xl mb-4">🔍</span>
               <h3 className="text-lg font-semibold text-gray-800">No items found in {catInfo.name}</h3>

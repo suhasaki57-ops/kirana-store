@@ -6,8 +6,8 @@ import { RootState } from '@/store';
 import { formatPrice } from '@/lib/utils';
 
 export default function AdminReportsPage() {
-  const { orders } = useSelector((s: RootState) => s.orders);
-  const { products } = useSelector((s: RootState) => s.productsAdmin);
+  const orders = useSelector((s: RootState) => s.orders?.orders || []);
+  const products = useSelector((s: RootState) => s.productsAdmin?.products || []);
 
   const { totalRevenue, totalOrders, avgOrderValue, monthlyBreakdown, topProducts } = useMemo(() => {
     const revenue = orders.reduce((s, o) => s + (o.total || 0), 0);

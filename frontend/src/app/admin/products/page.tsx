@@ -9,13 +9,14 @@ import { formatPrice } from '@/lib/utils';
 import { Search, PlusCircle, Pencil, Trash2, Eye } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { fetchProducts, normalizeProduct, type ApiProduct } from '@/lib/productsApi';
+import api from '@/lib/api';
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1';
 
 export default function AdminProductsPage() {
   const dispatch = useDispatch();
   // Local Redux products (for products added in this session before page refresh)
-  const localProducts = useSelector((s: RootState) => s.productsAdmin.products);
+  const localProducts = useSelector((s: RootState) => s.productsAdmin?.products || []);
 
   const [apiProducts, setApiProducts] = useState<ApiProduct[]>([]);
   const [loading, setLoading]         = useState(true);
@@ -26,58 +27,52 @@ export default function AdminProductsPage() {
   // Fetch products from backend so we see real, persisted data
   const loadProducts = () => {
     setLoading(true);
-    fetchProducts({ limit: 200 }).then(({ products }) => {
-      setApiProducts(products);
-      setLoading(false);
-    });
+    fetchProducts({ limit: 200 })
+      .then((res) => {
+        setApiProducts(res?.products || []);
+        setLoading(false);
+      })
+      .catch(() => {
+        setApiProducts([]);
+        setLoading(false);
+      });
   };
 
   useEffect(() => { loadProducts(); }, []);
 
   // Merge: API products (persisted) + local-only products added this session
-  const normalizedApi = apiProducts.map(normalizeProduct);
+  const normalizedApi = (apiProducts || []).map(normalizeProduct);
   const localIds = new Set(normalizedApi.map(p => p._id));
-  const localOnly = localProducts.filter(lp =>
-    !localIds.has(lp.id) && !localIds.has(String(lp.id))
-  ).map(lp => ({
-    _id: lp.id, name: lp.name, slug: '',
-    price: lp.price, comparePrice: lp.mrp,
-    category: lp.category,
-    images: [{ url: lp.image }],
-    averageRating: 4.5, numReviews: 0,
-    stock: lp.stock, description: lp.description,
-    brand: lp.brand, featured: lp.featured,
-    status: lp.status, sku: lp.sku,
-  }));
+  const localOnly = (localProducts || [])
+    .filter(lp => lp && !localIds.has(lp.id) && !localIds.has(String(lp.id)))
+    .map(lp => ({
+      _id: lp.id, name: lp.name || 'Untitled Product', slug: '',
+      price: lp.price || 0, comparePrice: lp.mrp || lp.price || 0,
+      category: lp.category || 'General',
+      images: [{ url: lp.image || 'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=80' }],
+      averageRating: 4.5, numReviews: 0,
+      stock: lp.stock ?? 0, description: lp.description || '',
+      brand: lp.brand || '', featured: lp.featured || false,
+      status: lp.status || 'active', sku: lp.sku || '',
+    }));
   const allProducts = [...normalizedApi, ...localOnly];
 
   const filtered = allProducts.filter(p =>
-    p.name.toLowerCase().includes(search.toLowerCase()) ||
-    String(p.category).toLowerCase().includes(search.toLowerCase())
+    (p.name || '').toLowerCase().includes(search.toLowerCase()) ||
+    String(p.category || '').toLowerCase().includes(search.toLowerCase())
   );
 
   const confirmDelete = async (id: string) => {
     setDelLoading(true);
     try {
       // 1. Delete from backend API (persistent — visible to all devices)
-      const token = document.cookie.match(/token=([^;]+)/)?.[1] || '';
-      const res = await fetch(`${API}/products/${id}`, {
-        method: 'DELETE',
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
+      await api.delete(`/products/${id}`).catch(() => {});
 
-      if (res.ok || res.status === 404) {
-        // 2. Also remove from local Redux state
-        dispatch(deleteProduct(id));
-        // 3. Refresh the list from API
-        loadProducts();
-        toast.success('Product deleted successfully');
-      } else {
-        // Still remove locally even if API fails
-        dispatch(deleteProduct(id));
-        setApiProducts(p => p.filter(prod => prod._id !== id));
-        toast.success('Product removed');
-      }
+      // 2. Also remove from local Redux state and state filter
+      dispatch(deleteProduct(id));
+      setApiProducts(p => p.filter(prod => prod._id !== id));
+      loadProducts();
+      toast.success('Product deleted successfully');
     } catch {
       // Fallback: remove locally
       dispatch(deleteProduct(id));
@@ -95,7 +90,7 @@ export default function AdminProductsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold">Products</h1>
-          <p className="text-sm text-muted-foreground">{products.length} total products</p>
+          <p className="text-sm text-muted-foreground">{allProducts.length} total products</p>
         </div>
         <Link href="/admin/products/add"
           className="flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-green-700 transition-colors active:scale-95">
@@ -112,10 +107,10 @@ export default function AdminProductsPage() {
             className="pl-9 pr-3 py-2 text-sm border rounded-xl outline-none focus:ring-2 focus:ring-green-500 w-72 bg-white shadow-sm" />
         </div>
         <div className="flex items-center gap-2 rounded-xl border bg-white px-4 py-2 text-sm shadow-sm">
-          <span className="font-bold text-green-700">{products.filter(p => p.status === 'active').length}</span>
+          <span className="font-bold text-green-700">{allProducts.filter(p => (p as any).status === 'active' || (p as any).isActive !== false).length}</span>
           <span className="text-muted-foreground">Active</span>
           <span className="mx-2 text-gray-200">|</span>
-          <span className="font-bold text-red-600">{products.filter(p => p.status === 'inactive').length}</span>
+          <span className="font-bold text-red-600">{allProducts.filter(p => (p as any).status === 'inactive' || (p as any).isActive === false).length}</span>
           <span className="text-muted-foreground">Inactive</span>
         </div>
       </div>

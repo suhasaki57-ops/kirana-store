@@ -12,17 +12,17 @@ const STATIC_FEATURED = [
 ];
 
 export function FeaturedProducts() {
-  const [products, setProducts] = useState<any[]>(STATIC_FEATURED);
+  const [products, setProducts] = useState<any[]>([]);
+  const [loading, setLoading]   = useState(true);
 
   useEffect(() => {
-    // Fetch from backend API — works on ALL devices (mobile, desktop, etc.)
     fetchFeaturedProducts().then((apiProducts: ApiProduct[]) => {
-      if (apiProducts.length > 0) {
-        setProducts(apiProducts.map(normalizeProduct).slice(0, 8));
-      }
-      // If API returns nothing, keep STATIC_FEATURED as fallback
-    });
+      setProducts(apiProducts.map(normalizeProduct).slice(0, 8));
+      setLoading(false);
+    }).catch(() => setLoading(false));
   }, []);
+
+  if (!loading && products.length === 0) return null;
 
   return (
     <section className="container section-padding">

@@ -1,8 +1,10 @@
+import mongoose from 'mongoose';
 import { Response } from 'express';
 import { asyncHandler } from '../utils/asyncHandler';
 import { ApiResponse } from '../utils/ApiResponse';
 import { AppError } from '../utils/AppError';
 import Product from '../models/Product.model';
+import Category from '../models/Category.model';
 import { AuthRequest } from '../types';
 
 // @desc    Get all products
@@ -128,6 +130,15 @@ export const getProductBySlug = asyncHandler(
 // @access  Private/Admin
 export const createProduct = asyncHandler(
   async (req: AuthRequest, res: Response) => {
+    if (req.body.category && typeof req.body.category === 'string' && !mongoose.Types.ObjectId.isValid(req.body.category)) {
+      let cat = await Category.findOne({
+        name: { $regex: new RegExp(`^${req.body.category.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&')}$`, 'i') }
+      });
+      if (!cat) {
+        cat = await Category.create({ name: req.body.category });
+      }
+      req.body.category = cat._id;
+    }
     const product = await Product.create(req.body);
 
     return ApiResponse.success(

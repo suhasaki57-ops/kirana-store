@@ -7,8 +7,8 @@ import { TrendingUp, ShoppingCart, Package, Users } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
 
 export function DashboardStats() {
-  const { orders }   = useSelector((s: RootState) => s.orders);
-  const { products } = useSelector((s: RootState) => s.productsAdmin);
+  const orders   = useSelector((s: RootState) => s.orders?.orders || []);
+  const products = useSelector((s: RootState) => s.productsAdmin?.products || []);
 
   // Prevent SSR/client hydration mismatch by only rendering real values on client
   const [mounted, setMounted] = useState(false);
