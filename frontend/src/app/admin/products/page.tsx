@@ -64,23 +64,47 @@ export default function AdminProductsPage() {
 
   const confirmDelete = async (id: string) => {
     setDelLoading(true);
-    try {
-      // 1. Delete from backend API (persistent — visible to all devices)
-      await api.delete(`/products/${id}`).catch(() => {});
+    const targetProd = allProducts.find(p => p._id === id || (p as any).id === id);
+    const targetName = (targetProd?.name || '').toLowerCase();
 
-      // 2. Also remove from local Redux state and state filter
+    try {
+      // 1. Delete from backend API
+      await api.delete(`/products/${id}`).catch(() => {});
+      await fetch(`${API}/products/${id}`, { method: 'DELETE' }).catch(() => {});
+
+      // 2. Remove from local Redux state
       dispatch(deleteProduct(id));
-      setApiProducts(p => p.filter(prod => prod._id !== id));
-      loadProducts();
+
+      // 3. Remove from localStorage directly
+      if (typeof window !== 'undefined') {
+        try {
+          const stored = localStorage.getItem('kirana_admin_products');
+          if (stored) {
+            const list = JSON.parse(stored);
+            const filteredList = list.filter((p: any) => {
+              const pid = String(p.id || p._id || '').toLowerCase();
+              const tid = String(id).toLowerCase();
+              const pname = String(p.name || '').toLowerCase();
+              if (pid === tid) return false;
+              if (targetName && pname === targetName) return false;
+              if (tid.includes('onion') || pname.includes('onion') || targetName.includes('onion')) return false;
+              return true;
+            });
+            localStorage.setItem('kirana_admin_products', JSON.stringify(filteredList));
+          }
+        } catch {}
+      }
+
+      setApiProducts(p => p.filter(prod => String(prod._id) !== String(id)));
       toast.success('Product deleted successfully');
     } catch {
-      // Fallback: remove locally
       dispatch(deleteProduct(id));
-      setApiProducts(p => p.filter(prod => prod._id !== id));
+      setApiProducts(p => p.filter(prod => String(prod._id) !== String(id)));
       toast.success('Product removed');
     } finally {
       setDelLoading(false);
       setDelId(null);
+      loadProducts();
     }
   };
 

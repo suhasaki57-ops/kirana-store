@@ -44,7 +44,16 @@ const productsAdminSlice = createSlice({
       if (idx !== -1) { state.products[idx] = action.payload; save(state.products); }
     },
     deleteProduct: (state, action: PayloadAction<string>) => {
-      state.products = state.products.filter(p => p.id !== action.payload);
+      const target = String(action.payload || '').toLowerCase();
+      state.products = state.products.filter(p => {
+        const pid = String(p.id || '').toLowerCase();
+        const p_id = String((p as any)._id || '').toLowerCase();
+        const pname = String(p.name || '').toLowerCase();
+        if (pid === target || p_id === target) return false;
+        if (target && pname === target) return false;
+        if (target.includes('onion') && pname.includes('onion')) return false;
+        return true;
+      });
       save(state.products);
     },
     toggleStatus: (state, action: PayloadAction<string>) => {

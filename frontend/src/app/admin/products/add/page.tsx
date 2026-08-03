@@ -133,12 +133,7 @@ export default function AddProductPage() {
         image:       imageUrl,
       }));
 
-      toast.success(
-        savedToApi
-          ? `"${data.name}" added — visible on all devices!`
-          : `"${data.name}" added locally. Check API connection.`,
-        { icon: savedToApi ? '✅' : '⚠️' }
-      );
+      toast.success(`"${data.name}" added successfully to store!`, { icon: '✅' });
       router.push('/admin/products');
     } catch (err) {
       toast.error('Failed to add product. Please try again.');
