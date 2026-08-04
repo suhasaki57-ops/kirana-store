@@ -27,7 +27,7 @@ export default function AdminProductsPage() {
   // Fetch products from backend so we see real, persisted data
   const loadProducts = () => {
     setLoading(true);
-    fetchProducts({ limit: 200 })
+    fetchProducts({ limit: 200, all: true })
       .then((res) => {
         setApiProducts(res?.products || []);
         setLoading(false);

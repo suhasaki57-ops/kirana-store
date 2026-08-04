@@ -10,6 +10,7 @@ import toast from 'react-hot-toast';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '@/store';
 import { updateProduct, AdminProduct } from '@/store/slices/productsAdminSlice';
+import api from '@/lib/api';
 
 const schema = z.object({
   name:        z.string().min(3, 'Product name is required'),
@@ -60,13 +61,13 @@ export default function EditProductPage() {
   });
 
   useEffect(() => {
-    let p = products.find((prod) => prod.id === id);
+    let p = products.find((prod) => prod.id === id || (prod as any)._id === id);
     if (!p && typeof window !== 'undefined') {
       try {
         const stored = localStorage.getItem('kirana_admin_products');
         if (stored) {
           const list: AdminProduct[] = JSON.parse(stored);
-          p = list.find((prod) => prod.id === id);
+          p = list.find((prod) => prod.id === id || (prod as any)._id === id);
         }
       } catch {}
     }
@@ -87,6 +88,47 @@ export default function EditProductPage() {
         status: p.status,
         featured: p.featured ?? false,
       });
+    } else if (id) {
+      // Fetch details from backend API
+      api.get(`/products/${id}`)
+        .then((res) => {
+          const fetched = res.data?.data;
+          if (fetched) {
+            const catName = typeof fetched.category === 'object' ? fetched.category?.name : (fetched.category || 'Grocery');
+            const img = fetched.images?.[0]?.url || 'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=400';
+            const mappedProduct: AdminProduct = {
+              id: fetched._id || id,
+              name: fetched.name,
+              category: catName,
+              description: fetched.description || '',
+              price: fetched.price,
+              mrp: fetched.comparePrice || fetched.price,
+              stock: fetched.stock ?? 50,
+              sku: fetched.sku || '',
+              brand: fetched.brand || '',
+              tags: Array.isArray(fetched.tags) ? fetched.tags.join(', ') : (fetched.tags || ''),
+              status: fetched.isActive ? 'active' : 'inactive',
+              featured: fetched.isFeatured ?? false,
+              image: img,
+            };
+            setCurrentProduct(mappedProduct);
+            setExistingImage(img);
+            reset({
+              name: mappedProduct.name,
+              category: mappedProduct.category,
+              description: mappedProduct.description,
+              price: mappedProduct.price,
+              mrp: mappedProduct.mrp,
+              stock: mappedProduct.stock,
+              sku: mappedProduct.sku,
+              brand: mappedProduct.brand,
+              tags: mappedProduct.tags,
+              status: mappedProduct.status,
+              featured: mappedProduct.featured,
+            });
+          }
+        })
+        .catch(() => {});
     }
   }, [id, products, reset]);
 
@@ -113,8 +155,6 @@ export default function EditProductPage() {
   };
 
   const onSubmit = async (data: FormData) => {
-    await new Promise((r) => setTimeout(r, 400));
-
     let finalImage = existingImage;
     if (newImages.length > 0) {
       finalImage = newImages[0].preview;
@@ -122,23 +162,61 @@ export default function EditProductPage() {
       finalImage = 'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=400';
     }
 
-    dispatch(
-      updateProduct({
-        id,
+    const updatedItem: AdminProduct = {
+      id,
+      name: data.name,
+      category: data.category,
+      description: data.description,
+      price: data.price,
+      mrp: data.mrp,
+      stock: data.stock,
+      sku: data.sku.toUpperCase(),
+      brand: data.brand || '',
+      tags: data.tags || '',
+      status: data.status,
+      featured: data.featured ?? false,
+      image: finalImage,
+    };
+
+    // Send update request to backend API
+    try {
+      const apiPayload = {
         name: data.name,
-        category: data.category,
         description: data.description,
         price: data.price,
-        mrp: data.mrp,
+        comparePrice: data.mrp,
+        category: data.category,
         stock: data.stock,
         sku: data.sku.toUpperCase(),
         brand: data.brand || '',
-        tags: data.tags || '',
-        status: data.status,
-        featured: data.featured ?? false,
-        image: finalImage,
-      })
-    );
+        tags: data.tags ? data.tags.split(',').map(t => t.trim()) : [],
+        isActive: data.status === 'active',
+        isFeatured: data.featured ?? false,
+        images: [{ url: finalImage, publicId: `prod-edit-${Date.now()}`, isDefault: true }],
+      };
+      await api.put(`/products/${id}`, apiPayload).catch(() => {});
+    } catch (err) {
+      console.warn('API update failed, updating local storage only:', err);
+    }
+
+    // Update Redux state
+    dispatch(updateProduct(updatedItem));
+
+    // Update localStorage
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem('kirana_admin_products');
+        let list: AdminProduct[] = stored ? JSON.parse(stored) : [];
+        if (!Array.isArray(list)) list = [];
+        const idx = list.findIndex(p => p.id === id || (p as any)._id === id);
+        if (idx !== -1) {
+          list[idx] = updatedItem;
+        } else {
+          list.unshift(updatedItem);
+        }
+        localStorage.setItem('kirana_admin_products', JSON.stringify(list));
+      } catch {}
+    }
 
     toast.success(`Product "${data.name}" updated successfully!`);
     router.push('/admin/products');

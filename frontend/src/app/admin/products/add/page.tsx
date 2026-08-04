@@ -9,6 +9,7 @@ import { UploadCloud, X, ImageIcon, ArrowLeft, Plus } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useDispatch } from 'react-redux';
 import { addProduct } from '@/store/slices/productsAdminSlice';
+import api from '@/lib/api';
 
 const schema = z.object({
   name:        z.string().min(3, 'Product name is required'),
@@ -78,16 +79,11 @@ export default function AddProductPage() {
 
   const onSubmit = async (data: FormData) => {
     try {
-      const newId = `prod-${Date.now()}`;
+      const fallbackId = `prod-${Date.now()}`;
       const imageUrl = images[0]?.preview ||
         'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=400';
 
-      const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1';
-      const token = document.cookie.match(/token=([^;]+)/)?.[1] ||
-        localStorage.getItem('token') || '';
-
       const payload = {
-        _id:         newId,
         name:        data.name,
         description: data.description,
         price:       data.price,
@@ -102,22 +98,19 @@ export default function AddProductPage() {
         images: [{ url: imageUrl, publicId: `product-${Date.now()}`, isDefault: true }],
       };
 
+      let finalId = fallbackId;
       try {
-        await fetch(`${API}/products`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          },
-          body: JSON.stringify(payload),
-        });
+        const res = await api.post('/products', payload);
+        if (res.data?.data?._id || res.data?.data?.id) {
+          finalId = String(res.data.data._id || res.data.data.id);
+        }
       } catch (apiErr) {
-        console.warn('API save failed, falling back to localStorage only:', apiErr);
+        console.warn('Backend API save failed, using local storage fallback:', apiErr);
       }
 
       const newProductItem = {
-        id:          newId,
-        _id:         newId,
+        id:          finalId,
+        _id:         finalId,
         name:        data.name,
         category:    data.category,
         price:       data.price,
@@ -139,6 +132,7 @@ export default function AddProductPage() {
           const stored = localStorage.getItem('kirana_admin_products');
           let list = stored ? JSON.parse(stored) : [];
           if (!Array.isArray(list)) list = [];
+          list = list.filter((p: any) => (p.id || p._id) !== finalId);
           list.unshift(newProductItem);
           localStorage.setItem('kirana_admin_products', JSON.stringify(list));
         } catch {}

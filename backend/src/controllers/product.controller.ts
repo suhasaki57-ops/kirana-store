@@ -17,7 +17,14 @@ export const getProducts = asyncHandler(
     const skip = (page - 1) * limit;
 
     // Build query
-    const query: any = { isActive: true };
+    const query: any = {};
+    if (req.query.all === 'true') {
+      // Retrieve all products including inactive for admin view
+    } else if (req.query.isActive !== undefined) {
+      query.isActive = req.query.isActive === 'true';
+    } else {
+      query.isActive = true;
+    }
 
     // Category filter
     if (req.query.category) {
@@ -130,6 +137,14 @@ export const getProductBySlug = asyncHandler(
 // @access  Private/Admin
 export const createProduct = asyncHandler(
   async (req: AuthRequest, res: Response) => {
+    // Remove custom string _id or id if not a valid Mongoose ObjectId
+    if (req.body._id && !mongoose.Types.ObjectId.isValid(req.body._id)) {
+      delete req.body._id;
+    }
+    if (req.body.id && !mongoose.Types.ObjectId.isValid(req.body.id)) {
+      delete req.body.id;
+    }
+
     if (req.body.category && typeof req.body.category === 'string' && !mongoose.Types.ObjectId.isValid(req.body.category)) {
       let cat = await Category.findOne({
         name: { $regex: new RegExp(`^${req.body.category.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&')}$`, 'i') }

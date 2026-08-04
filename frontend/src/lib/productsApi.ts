@@ -4,8 +4,7 @@
  * show up instantly on all customer/user pages.
  */
 import axios from 'axios';
-
-const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1';
+import { getApiUrl } from './api';
 
 export interface ApiProduct {
   _id: string;
@@ -107,7 +106,7 @@ const getLocalAdminProducts = (): ApiProduct[] => {
     }));
 };
 
-/** Fetch all active products — used on customer pages */
+/** Fetch products — used on customer & admin pages */
 export async function fetchProducts(params?: {
   search?: string;
   category?: string;
@@ -116,9 +115,11 @@ export async function fetchProducts(params?: {
   sort?: string;
   page?: number;
   limit?: number;
+  all?: boolean;
 }): Promise<{ products: ApiProduct[]; total: number }> {
   let apiProducts: ApiProduct[] = [];
   try {
+    const baseUrl = getApiUrl();
     const query = new URLSearchParams();
     if (params?.search)    query.set('search',   params.search);
     if (params?.category)  query.set('category', params.category);
@@ -127,8 +128,9 @@ export async function fetchProducts(params?: {
     if (params?.sort)      query.set('sort',     params.sort);
     if (params?.page)      query.set('page',     String(params.page));
     if (params?.limit)     query.set('limit',    String(params.limit ?? 100));
+    if (params?.all)       query.set('all',      'true');
 
-    const res = await axios.get(`${API}/products?${query.toString()}`);
+    const res = await axios.get(`${baseUrl}/products?${query.toString()}`);
     apiProducts = res.data.data || [];
   } catch {
     apiProducts = [];
